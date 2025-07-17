@@ -1,0 +1,44 @@
+    # ecommerce-app/docker-compose.yml
+    version: '3.8'
+
+    services:
+      db:
+        image: mysql:8.0
+        container_name: mysql_db
+        environment:
+          MYSQL_ROOT_PASSWORD: root_password # IMPORTANT: Change this in production!
+          MYSQL_DATABASE: ecommerce_db
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password # IMPORTANT: Change this in production!
+        ports:
+          - "3306:3306" # Expose MySQL port for local access (optional, but useful for direct access)
+        volumes:
+          - db_data:/var/lib/mysql # Persist data
+        healthcheck:
+          test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+          timeout: 20s
+          retries: 10
+        networks:
+          - ecommerce_network # Assign to our custom network
+
+      product-catalog-service:
+        build: ./product-catalog-service # Path to your Dockerfile and context
+        container_name: product_catalog_app
+        ports:
+          - "8000:8000" # Map host port 8000 to container port 8000
+        environment:
+          # Use the service name 'db' as the host, as they are on the same Docker network
+          DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
+        depends_on:
+          db:
+            condition: service_healthy # Ensure DB is healthy before starting this service
+        networks:
+          - ecommerce_network # Assign to our custom network
+
+    networks:
+      ecommerce_network:
+        driver: bridge # Default bridge network type
+
+    volumes:
+      db_data:
+    

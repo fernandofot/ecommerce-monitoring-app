@@ -1,0 +1,46 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.sqlite3
+*.db
+
+# Docker
+*.log
+*.tar
+*.gz
+*.zip
+.dockerignore
+docker-compose.override.yml # If you ever create one for local overrides
+
+# Node.js (for future frontend/gateway)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.parcel-cache/
+dist/ # Build output directory
+build/ # Build output directory
+
+# Java (for future services)
+.gradle/
+build/
+target/
+*.jar
+*.war
+*.class
+
+# .NET (for future services)
+[Bb]in/
+[Oo]bj/
+
+# IDE and OS specific files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*~
