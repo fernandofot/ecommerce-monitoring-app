@@ -34,15 +34,16 @@ The application is structured as a set of independent microservices, each potent
     * **Inventory Service (Node.js):** Manages product stock levels.
 
 ## Observability Focus
+
 A core aspect of this project is its design for monitoring and observability. Future integrations will include:
 
-    * **Structured Logging:** Consistent logging with trace/span IDs.
+* **Structured Logging:** Consistent logging with trace/span IDs.
 
-    * **Metrics Exposure:** Application-specific metrics for performance analysis.
+* **Metrics Exposure:** Application-specific metrics for performance analysis.
 
-    * **Distributed Tracing (OpenTelemetry):** End-to-end transaction visibility across all services.
+* **Distributed Tracing (OpenTelemetry):** End-to-end transaction visibility across all services.
 
-    * **Health Checks:** Standardized endpoints for liveness and readiness probes.
+* **Health Checks:** Standardized endpoints for liveness and readiness probes.
 
 ## Setup and Running the Application
 This guide assumes you have Docker Desktop installed and running on your system.
