@@ -126,6 +126,9 @@ You should see both ```mysql_db```, ```product_catalog_app``` and ```ecommerce_n
 
     You should see the E-commerce Store frontend displaying products.
 
+  **New Feature: Add to Cart**
+    Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header. 
+
 * **Product Catalog Service API Docs (via Nginx):** 
 
 You can access the FastAPI interactive documentation (Swagger UI) through Nginx:
@@ -135,6 +138,8 @@ http://localhost/api/docs
 ```
 
 From the Swagger UI, you can test the API endpoints (e.g., ```GET /products/```, ```POST /products/```).
+
+* The API documentation is now fully accessible and interactive via the Nginx proxy.
 
 * Test the ```GET /health``` endpoint to confirm the service and database connection are healthy.
 
