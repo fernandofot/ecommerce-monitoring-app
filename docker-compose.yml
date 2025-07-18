@@ -1,44 +1,70 @@
-    # ecommerce-app/docker-compose.yml
-    version: '3.8'
+# ecommerce-app/docker-compose.yml
+version: '3.8'
 
-    services:
-      db:
-        image: mysql:8.0
-        container_name: mysql_db
-        environment:
-          MYSQL_ROOT_PASSWORD: root_password # IMPORTANT: Change this in production!
-          MYSQL_DATABASE: ecommerce_db
-          MYSQL_USER: user
-          MYSQL_PASSWORD: password # IMPORTANT: Change this in production!
-        ports:
-          - "3306:3306" # Expose MySQL port for local access (optional, but useful for direct access)
-        volumes:
-          - db_data:/var/lib/mysql # Persist data
-        healthcheck:
-          test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-          timeout: 20s
-          retries: 10
-        networks:
-          - ecommerce_network # Assign to our custom network
-
-      product-catalog-service:
-        build: ./product-catalog-service # Path to your Dockerfile and context
-        container_name: product_catalog_app
-        ports:
-          - "8000:8000" # Map host port 8000 to container port 8000
-        environment:
-          # Use the service name 'db' as the host, as they are on the same Docker network
-          DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
-        depends_on:
-          db:
-            condition: service_healthy # Ensure DB is healthy before starting this service
-        networks:
-          - ecommerce_network # Assign to our custom network
-
-    networks:
-      ecommerce_network:
-        driver: bridge # Default bridge network type
-
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password # IMPORTANT: Change this in production!
+      MYSQL_DATABASE: ecommerce_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password # IMPORTANT: Change this in production!
+    ports:
+      - "3306:3306" # Expose MySQL port for local access
     volumes:
-      db_data:
-    
+      - db_data:/var/lib/mysql # Persist data
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - ecommerce_network
+
+  product-catalog-service:
+    build: ./product-catalog-service
+    container_name: product_catalog_app
+    environment:
+      DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ecommerce_network
+
+  frontend-builder: # Renamed to clearly indicate its role
+    build: ./frontend
+    container_name: ecommerce_frontend_builder # Consistent naming
+    # The 'command' overrides the Dockerfile's CMD and ensures it runs 'npm run build' and exits
+    command: npm run build
+    volumes:
+      - frontend_build_data:/app/build # Mount a named volume to persist the build output
+    networks:
+      - ecommerce_network # Still part of the network, though not strictly needed for build
+    # No ports needed here, as it's just building
+
+  nginx: # NGINX SERVICE
+    build: ./nginx
+    container_name: ecommerce_nginx
+    ports:
+      - "80:80" # Map host port 80 to Nginx's internal port 80
+    volumes:
+      # Mount the named volume containing the React build output
+      - frontend_build_data:/usr/share/nginx/html:ro
+      # Mount the Nginx config file (already copied by Dockerfile, but good for quick local changes)
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend-builder:
+        condition: service_completed_successfully # Nginx waits for the frontend build to finish
+      product-catalog-service:
+        condition: service_started
+    networks:
+      - ecommerce_network
+
+networks:
+  ecommerce_network:
+    driver: bridge
+
+volumes:
+  db_data:
+  frontend_build_data: # Define the named volume for frontend build output
