@@ -9,29 +9,29 @@ To build a multi-technology microservices application that can be easily contain
 ## Architecture & Technologies
 The application is structured as a set of independent microservices, each potentially using a different technology stack.
 
-* Current Services:**
+* **Current Services:**
 
-    * **Product Catalog Service (Python / FastAPI / MySQL)**
+    * **Frontend Application (React):** User-facing web interface. Built with React and served by Nginx.
 
-        * **Role:** Manages product data (CRUD operations, search, filtering).
+    * **Nginx Reverse Proxy:** Acts as the entry point, serving the React static files and proxying API requests to the backend service.
+
+    * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering).
 
         * **Technology:** Python 3.9+, FastAPI, SQLAlchemy, MySQL.
-
+        
         * **Database:** MySQL.
 
         * **Containerization:** Docker.
 
-* Planned Services:
+* **Planned Services:** (Future additions to expand the microservices architecture)
 
-    * **Frontend Application (React):** User-facing web interface.
+    * API Gateway / Frontend BFF (Node.js / Express): Primary entry point for the frontend, aggregating calls to backend services.
 
-    * **API Gateway / Frontend BFF (Node.js / Express):** Primary entry point for the frontend, aggregating calls to backend services.
+    * User & Authentication Service (Java / Spring Boot): Handles user registration, login, and authentication.
 
-    * **User & Authentication Service (Java / Spring Boot):** Handles user registration, login, and authentication.
+    * Order Processing Service (.NET / ASP.NET Core): Manages the order lifecycle.
 
-    * **Order Processing Service (.NET / ASP.NET Core):** Manages the order lifecycle.
-
-    * **Inventory Service (Node.js):** Manages product stock levels.
+    * Inventory Service (Node.js): Manages product stock levels.
 
 ## Observability Focus
 
@@ -57,70 +57,42 @@ ecommerce-app/
 │   ├── main.py
 │   ├── requirements.txt
 │   └── Dockerfile
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   └── App.js
+│   ├── package.json
+│   └── Dockerfile
+├── nginx/
+│   ├── nginx.conf
+│   └── Dockerfile
 ├── docker-compose.yml
 └── .gitignore
 └── README.md (this file)
 ```
 **2. Docker Compose Configuration**
 
-The ```docker-compose.yml``` file orchestrates the services. It defines the MySQL database and the Product Catalog Service, connecting them to a shared Docker network.
-```
-# ecommerce-app/docker-compose.yml
-version: '3.8'
+The ```docker-compose.yml``` file orchestrates all services: the MySQL database, the Product Catalog Service, a frontend builder, and the Nginx reverse proxy, connecting them to a shared Docker network.
 
-services:
-  db:
-    image: mysql:8.0
-    container_name: mysql_db
-    environment:
-      MYSQL_ROOT_PASSWORD: root_password # IMPORTANT: Change this in production!
-      MYSQL_DATABASE: ecommerce_db
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password # IMPORTANT: Change this in production!
-    ports:
-      - "3306:3306" # Expose MySQL port for local access
-    volumes:
-      - db_data:/var/lib/mysql # Persist data
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-    networks:
-      - ecommerce_network
+***(The full ```docker-compose.yml``` content is in the file itself, not replicated here for brevity and to avoid redundancy.)***
 
-  product-catalog-service:
-    build: ./product-catalog-service
-    container_name: product_catalog_app
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - ecommerce_network
-
-networks:
-  ecommerce_network:
-    driver: bridge
-
-volumes:
-  db_data:
-```
 **3. Build and Run Services**
 
 Navigate to the root of your ```ecommerce-app``` directory in your terminal:
 ```
 cd ecommerce-app
 ```
-First, ensure your ```product-catalog-service``` Docker image is built (or rebuilt if ```main.py``` was changed):
+First, perform a clean shutdown and remove any old containers/volumes to ensure a fresh start:
 ```
-cd product-catalog-service
-docker build -t product-catalog-service .
-cd .. # Go back to the ecommerce-app root
+docker compose down --volumes --remove-orphans
 ```
-Now, start all services defined in ```docker-compose.yml```:
+Next, build all the necessary Docker images:
+```
+docker compose build
+
+```
+Finally, start all services in detached mode:
+
 ```
 docker compose up -d
 ```
@@ -128,7 +100,11 @@ This command will:
 
 * Create and start the ```mysql_db``` container.
 
-* Create and start the ```product_catalog_app``` container (using the image you just built), ensuring it waits for the database to be healthy.
+* Create and run the ```ecommerce_frontend_builder container```, which builds the React app and then exits.
+
+* Create and start the ```product_catalog_app``` container ensuring it waits for the database to be healthy.
+
+* Create and start the ```ecommerce_nginx``` container, which serves the built React app and proxies API requests to the ```product_catalog_app```.
 
 **4. Verify Services**
 
@@ -136,15 +112,29 @@ Check that both containers are running:
 ```
 docker ps
 ```
-You should see both ```mysql_db``` and ```product_catalog_app``` listed with a ```Up``` status.
+You should see both ```mysql_db```, ```product_catalog_app``` and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
 
-**5. Access the Product Catalog Service API**
+**5. Access the Application**
 
-Open your web browser and navigate to the FastAPI interactive documentation (Swagger UI):
+* **Frontend Application:**
 
-* **Product Catalog Service API Docs:** ```http://localhost:8000/docs```
+    Open your web browser and navigate to:
+    
+    ```
+    http://localhost
+    ```
 
-From the Swagger UI, you can:
+    You should see the E-commerce Store frontend displaying products.
+
+* **Product Catalog Service API Docs (via Nginx):** 
+
+You can access the FastAPI interactive documentation (Swagger UI) through Nginx:
+
+```
+http://localhost/api/docs
+```
+
+From the Swagger UI, you can test the API endpoints (e.g., ```GET /products/```, ```POST /products/```).
 
 * Test the ```GET /health``` endpoint to confirm the service and database connection are healthy.
 
