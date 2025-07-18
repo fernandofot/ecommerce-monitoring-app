@@ -1,23 +1,54 @@
 // frontend/src/App.js
 import React, { useEffect, useState } from 'react';
+// Import lucide-react for icons
+import { ShoppingCart } from 'lucide-react'; // Make sure lucide-react is available, if not, use inline SVG or emoji
 
 function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cartCount, setCartCount] = useState(0); // New state for cart count
+  const [message, setMessage] = useState({ text: '', type: '' }); // For success/error messages
 
-  // --- IMPORTANT CHANGE HERE ---
-  // With Nginx acting as a reverse proxy, the frontend will make requests
-  // to a relative path like /api/products/. Nginx will then forward these
-  // requests to the product-catalog-service.
-  const API_BASE_URL = '/api'; // All API calls will go through /api
-  // --- END IMPORTANT CHANGE ---
+  const API_BASE_URL = '/api';
+
+  // Function to display temporary messages
+  const showMessage = (text, type = 'success') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: '', type: '' }), 3000); // Message disappears after 3 seconds
+  };
+
+  // Function to handle adding product to cart
+  const handleAddToCart = async (productId, productName) => {
+    try {
+      // Send POST request to backend to "add" item to cart
+      const response = await fetch(`${API_BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ product_id: productId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Failed to add ${productName} to cart.`);
+      }
+
+      // If successful, update local cart count and show message
+      setCartCount(prevCount => prevCount + 1);
+      showMessage(`${productName} added to cart!`, 'success');
+
+    } catch (e) {
+      console.error("Error adding to cart:", e);
+      showMessage(`Error adding ${productName} to cart: ${e.message}`, 'error');
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        // Fetch products from the Product Catalog Service via Nginx proxy
         const response = await fetch(`${API_BASE_URL}/products/`);
         if (!response.ok) {
           const errorText = await response.text();
@@ -39,17 +70,32 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-800 p-4">
-      <header className="bg-white shadow-md rounded-lg p-6 mb-8">
-        <h1 className="text-4xl font-bold text-center text-indigo-700 mb-2">
+      <header className="bg-white shadow-md rounded-lg p-6 mb-8 flex justify-between items-center">
+        <h1 className="text-4xl font-bold text-indigo-700 mb-2">
           E-commerce Store
         </h1>
-        <p className="text-center text-lg text-gray-600">
-          Your one-stop shop for amazing products!
-        </p>
+        <div className="relative">
+          <ShoppingCart className="w-8 h-8 text-indigo-600 cursor-pointer" />
+          {cartCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+              {cartCount}
+            </span>
+          )}
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto">
         <h2 className="text-3xl font-semibold text-gray-800 mb-6 text-center">Our Products</h2>
+
+        {/* Message display area */}
+        {message.text && (
+          <div className={`px-4 py-3 rounded relative text-center mb-4 ${
+            message.type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+            'bg-red-100 border border-red-400 text-red-700'
+          }`} role="alert">
+            <span className="block sm:inline">{message.text}</span>
+          </div>
+        )}
 
         {loading && (
           <div className="flex justify-center items-center h-48">
@@ -89,7 +135,10 @@ function App() {
                     <span className="text-2xl font-extrabold text-indigo-600">€{product.price.toFixed(2)}</span>
                     <span className="text-sm text-gray-500">Stock: {product.stock_quantity}</span>
                   </div>
-                  <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md">
+                  <button
+                    onClick={() => handleAddToCart(product.id, product.name)}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md"
+                  >
                     Add to Cart
                   </button>
                 </div>

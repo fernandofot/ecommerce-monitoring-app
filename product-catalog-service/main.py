@@ -60,11 +60,21 @@ class ProductResponse(ProductBase):
         # If you are using Pydantic V2, this should be:
         # from_attributes = True
 
+# NEW: Pydantic model for the Add to Cart request body
+class AddToCartRequest(BaseModel):
+    product_id: int
+
 # --- FastAPI Application Setup ---
 app = FastAPI(
     title="Product Catalog Service",
     description="Manages product data for the e-commerce application.",
-    version="1.0.0"
+    version="1.0.0",
+     # NEW: Set the root_path to /api/
+    # This tells FastAPI that it's being served under the /api/ subpath
+    root_path="/api",
+    # Remove or comment out openapi_url, let FastAPI derive it from root_path
+    # openapi_url="/api/openapi.json", # This line should be removed or commented out
+
 )
 
 # --- CORS Configuration ---
@@ -176,7 +186,7 @@ async def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(ge
 async def get_product(product_id: int, db: Session = Depends(get_db)):
     logger.info(f"Received request to get product with ID: {product_id}")
     product = db.query(Product).filter(Product.id == product_id).first()
-    if product is None: # THIS LINE IS THE FIX
+    if product is None:
         logger.warning(f"Product with ID {product_id} not found.")
         raise HTTPException(status_code=404, detail="Product not found")
     logger.info(f"Returning product with ID: {product_id}")
@@ -210,4 +220,19 @@ async def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     logger.info(f"Product with ID {product_id} deleted successfully.")
     return {"message": "Product deleted successfully"}
-    
+
+@app.post("/cart/add", summary="Add a product to the cart", status_code=200)
+async def add_to_cart(request: AddToCartRequest):
+    """
+    Simulates adding a product to the shopping cart.
+    In a real application, this would interact with an Inventory Service
+    and/or a dedicated Cart Service, and potentially user sessions.
+    For this example, it just acknowledges the request.
+    """
+    logger.info(f"Received request to add product ID {request.product_id} to cart.")
+    # Here, you would typically:
+    # 1. Check if the product exists and is in stock.
+    # 2. Associate the product with a user's session/cart.
+    # 3. Potentially update inventory.
+    # For now, we just return a success message.
+    return {"message": f"Product ID {request.product_id} successfully added to cart (simulated)."}
