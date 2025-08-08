@@ -59,8 +59,10 @@ ecommerce-app/
 │   └── Dockerfile
 ├── frontend/
 │   ├── public/
+│   │   └── index.html
 │   ├── src/
-│   │   └── App.js
+│   │   ├── App.js
+│   │   └── index.js
 │   ├── package.json
 │   └── Dockerfile
 ├── nginx/
