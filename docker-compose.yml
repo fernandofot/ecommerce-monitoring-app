@@ -1,70 +1,98 @@
 # ecommerce-app/docker-compose.yml
+
+# We're using version 3.8 because it has all the features we need.
 version: '3.8'
 
 services:
+  # The database service. This is the heart of our application.
   db:
+    # Let's use the official MySQL image. Version 8.0 is a good choice.
     image: mysql:8.0
     container_name: mysql_db
     environment:
-      MYSQL_ROOT_PASSWORD: root_password # IMPORTANT: Change this in production!
+      # These are super important for local development.
+      # WARNING: Change these passwords for anything other than a local demo!
+      MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: ecommerce_db
       MYSQL_USER: user
-      MYSQL_PASSWORD: password # IMPORTANT: Change this in production!
+      MYSQL_PASSWORD: password
     ports:
-      - "3306:3306" # Expose MySQL port for local access
+      # Expose the standard MySQL port so we can connect to it from our host machine
+      # with a tool like DBeaver or MySQL Workbench.
+      - "3306:3306"
     volumes:
-      - db_data:/var/lib/mysql # Persist data
+      # Use a named volume to persist the database data.
+      # This means our data won't disappear when we stop and start the container.
+      - db_data:/var/lib/mysql
     healthcheck:
+      # This is a critical part! We need to make sure the database is fully up and running
+      # before the backend service tries to connect to it.
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
     networks:
       - ecommerce_network
 
+  # This is our backend API service, powered by FastAPI.
   product-catalog-service:
     build: ./product-catalog-service
     container_name: product_catalog_app
     environment:
+      # Tell the backend service how to connect to the database.
+      # The hostname 'db' works because it's the service name in Docker Compose.
       DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
     depends_on:
+      # Don't start the API until the database is healthy.
+      # This prevents a lot of frustrating startup errors.
       db:
         condition: service_healthy
     networks:
       - ecommerce_network
 
-  frontend-builder: # Renamed to clearly indicate its role
+  # This service is just a temporary container to build our React frontend.
+  # It's an important part of the multi-stage build pattern.
+  frontend-builder:
     build: ./frontend
-    container_name: ecommerce_frontend_builder # Consistent naming
-    # The 'command' overrides the Dockerfile's CMD and ensures it runs 'npm run build' and exits
+    container_name: ecommerce_frontend_builder
     command: npm run build
     volumes:
-      - frontend_build_data:/app/build # Mount a named volume to persist the build output
+      # Mount a volume here to grab the 'build' output.
+      # The Nginx container will use this volume later.
+      - frontend_build_data:/app/build
     networks:
-      - ecommerce_network # Still part of the network, though not strictly needed for build
-    # No ports needed here, as it's just building
+      - ecommerce_network
 
-  nginx: # NGINX SERVICE
+  # The Nginx service, our reverse proxy and static file server.
+  nginx:
     build: ./nginx
     container_name: ecommerce_nginx
     ports:
-      - "80:80" # Map host port 80 to Nginx's internal port 80
+      # Map the host's port 80 to the container's port 80.
+      # Now we can access the app at http://localhost.
+      - "80:80"
     volumes:
-      # Mount the named volume containing the React build output
+      # Grab the built frontend assets from the named volume.
       - frontend_build_data:/usr/share/nginx/html:ro
-      # Mount the Nginx config file (already copied by Dockerfile, but good for quick local changes)
+      # Also, mount the local nginx.conf so we can make quick changes without rebuilding.
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
+      # We absolutely have to wait for the frontend to be built before Nginx can serve it.
       frontend-builder:
-        condition: service_completed_successfully # Nginx waits for the frontend build to finish
+        condition: service_completed_successfully
+      # We also need the API to be running so Nginx can proxy requests to it.
       product-catalog-service:
         condition: service_started
     networks:
       - ecommerce_network
 
+# --- Docker Compose global settings ---
+
 networks:
+  # Create a custom network so all our services can talk to each other by name.
   ecommerce_network:
     driver: bridge
 
 volumes:
+  # The named volumes we're using to persist data and pass files between containers.
   db_data:
-  frontend_build_data: # Define the named volume for frontend build output
+  frontend_build_data:

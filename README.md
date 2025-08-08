@@ -46,7 +46,7 @@ A core aspect of this project is its design for monitoring and observability. Fu
 * **Health Checks:** Standardized endpoints for liveness and readiness probes.
 
 ## Setup and Running the Application
-This guide assumes you have Docker Desktop installed and running on your system.
+This guide assumes you have Docker installed and running on your system.
 
 **1. Project Structure**
 

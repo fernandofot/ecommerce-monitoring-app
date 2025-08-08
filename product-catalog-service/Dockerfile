@@ -1,25 +1,29 @@
 # Dockerfile
-# Use a lightweight Python base image
+
+# Start with a good, lightweight Python base image.
+# The 'slim-buster' variant is perfect for keeping the final image size down.
 FROM python:3.9-slim-buster
 
-# Set working directory in the container
+# Let's set the working directory inside the container.
 WORKDIR /app
 
-# Copy only the requirements file first to leverage Docker cache
+# This is a key trick for Docker caching!
+# Copy the requirements file first so we only reinstall dependencies if they change.
 COPY requirements.txt .
 
-# Install dependencies
-# Using --no-cache-dir to keep image size small
+# Install our project's dependencies.
+# The '--no-cache-dir' option is a nice touch to keep the image even smaller.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Now that the dependencies are installed, we can copy the rest of our code.
+# This makes sure the previous layer is cached if we're just making code changes.
 COPY . .
 
-# Expose the port FastAPI will run on
+# Just letting Docker know that our app will be listening on this port.
 EXPOSE 8000
 
-# Command to run the application using Uvicorn, a fast ASGI server
-# --host 0.0.0.0 makes the server accessible from outside the container
-# --port 8000 specifies the port
-# --reload (optional, for development) enables auto-reloading on code changes
+# This is the command that actually runs the backend.
+# We're using Uvicorn with FastAPI.
+# The '--host 0.0.0.0' part is super important so it's accessible from outside the container.
+# We'll skip '--reload' since this is a production-ready container.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
