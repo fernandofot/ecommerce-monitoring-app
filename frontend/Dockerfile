@@ -1,15 +1,18 @@
 # frontend/Dockerfile
 
+# ======================================================
+# Stage 1: Build the React app
+# ======================================================
 # Okay, first stage: build the React app.
-# Using a small node image to keep the build dependencies light.
+# I'm starting with a node image, specifically one that's small and fast (alpine).
 FROM node:18-alpine AS build
 
-# Let's put our app inside this directory in the container
+# Let's put the app inside this directory in the container
 WORKDIR /app
 
 # Copy the package files first. This is a crucial trick!
-# It lets Docker cache this `npm install` layer if these files don't change,
-# which makes rebuilding way faster.
+# It lets Docker cache the `npm install` layer. So if you only change your
+# source code, this step won't re-run, which makes rebuilding way faster.
 COPY package.json ./
 
 # Now install all the dependencies.
@@ -20,9 +23,29 @@ RUN npm install
 COPY . .
 
 # Time to build the production assets.
-# This command will create the 'build' folder.
+# This command will create the 'build' folder with our optimized files.
 RUN npm run build
 
-# That's it for this stage. This container will not run anything.
-# The next stage (in another Dockerfile) will grab the 'build' directory from this one.
-# So, no need for a 'CMD' here.
+
+# ======================================================
+# Stage 2: Serve the app with a lightweight web server
+# ======================================================
+# Now we start a new, much smaller container for production.
+# The `nginx:alpine` image is perfect for this—it's super light!
+FROM nginx:alpine
+
+# The Nginx container has its own default config. We need to replace it with ours
+# to tell it how to serve our React app. This assumes you have an `nginx.conf` file
+# in your frontend directory that's ready to go.
+COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+
+# We need to grab the static HTML, CSS, and JS files from our 'build' stage
+# and put them in the Nginx web root. The `--from=build` is the magic part!
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Expose port 80 so the container can be accessed.
+EXPOSE 80
+
+# This is the command that Nginx will run when the container starts.
+# We're telling it to stay in the foreground so Docker can manage it.
+CMD ["nginx", "-g", "daemon off;"]

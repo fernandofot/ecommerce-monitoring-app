@@ -128,12 +128,12 @@ You should see both ```mysql_db```, ```product_catalog_app``` and ```ecommerce_n
 
     You should see the E-commerce Store frontend displaying products.
 
+    ![E-commerce Store Frontend](frontend/public/images/home.png)
+
   **New Feature: Add to Cart**
     Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header. 
 
-* **Product Catalog Service API Docs (via Nginx):** 
-
-You can access the FastAPI interactive documentation (Swagger UI) through Nginx:
+* **Product Catalog Service API Docs (via Nginx):**  You can access the FastAPI interactive documentation (Swagger UI) through Nginx:
 
 ```
 http://localhost/api/docs
@@ -148,6 +148,8 @@ From the Swagger UI, you can test the API endpoints (e.g., ```GET /products/```,
 * Use the ```POST /products/``` endpoint to add new products to the catalog.
 
 * Use ```GET /products/``` to retrieve all products.
+
+![E-commerce Store Frontend](frontend/public/images/catalog_api.png)
 
 ## Development
 **Adding New Services**

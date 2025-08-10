@@ -1,76 +1,116 @@
 // frontend/src/App.js
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid'; // Need a way to generate unique IDs.
 
-const API_BASE_URL = '/api'; // Kinda temporary, but works for now.
+const API_BASE_URL = '/api';
 
 function App() {
+  // Let's keep track of our app's state
   const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // Renamed 'loading' to 'isLoading' for variety
+  const [cartItems, setCartItems] = useState([]); // This will now hold the actual list of items
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cartItems, setCartItems] = useState(0); // Using 'cartItems' instead of 'cartCount'
+  const [message, setMessage] = useState({ text: '', type: '' });
 
-  // This will show a quick message when something happens
+  // A little helper for our flash messages. It's a bit of a manual process, but it works!
   const showFlashMessage = (text, type = 'success') => {
-    // [TODO: refactor this into a custom hook later]
-    // The message state is handled in this component, but maybe it should be a global thing.
-    // For now, this gets the job done.
     setMessage({ text, type });
     setTimeout(() => setMessage({ text: '', type: '' }), 3000);
   };
 
-  const [message, setMessage] = useState({ text: '', type: '' }); // State for flash messages
+  // NEW! We'll generate a unique ID for our cart session.
+  // We'll store it in localStorage so the cart persists across page reloads.
+  const getCartSessionId = () => {
+    let sessionId = localStorage.getItem('cartSessionId');
+    if (!sessionId) {
+      sessionId = uuidv4();
+      localStorage.setItem('cartSessionId', sessionId);
+    }
+    return sessionId;
+  };
 
-  // Let's grab the products when the component first loads
+  const cartSessionId = getCartSessionId();
+
+  // Let's grab the products and the cart items when the component first loads
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchInitialData = async () => {
       try {
-        setIsLoading(true); // Start the loading spinner
-        const response = await fetch(`${API_BASE_URL}/products/`);
-        // Yikes, something went wrong with the server
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Couldn't fetch products:", errorText);
+        setIsLoading(true);
+
+        // First, fetch the products
+        const productsResponse = await fetch(`${API_BASE_URL}/products/`);
+        if (!productsResponse.ok) {
           throw new Error(`Failed to load products. Check the server!`);
         }
-        const data = await response.json();
-        setProducts(data);
+        const productsData = await productsResponse.json();
+        setProducts(productsData);
+
+        // NEW! Now, let's grab the cart items for this session
+        const cartResponse = await fetch(`${API_BASE_URL}/cart/${cartSessionId}`);
+        if (!cartResponse.ok) {
+          throw new Error(`Failed to load cart items.`);
+        }
+        const cartData = await cartResponse.json();
+        setCartItems(cartData);
+
       } catch (e) {
         console.error("Something went wrong with the fetch:", e);
-        setError(`Failed to load products: ${e.message}. The backend is probably down.`);
+        setError(`Failed to load data: ${e.message}. The backend might be down.`);
       } finally {
-        setIsLoading(false); // Done loading, regardless of the outcome
+        setIsLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchInitialData();
   }, []); // The empty array means this runs only once
 
-  // Let's handle adding a product to the cart
-  const handleAddToCart = async (product) => { // Passing the whole product object is maybe easier?
+  // Let's handle adding a product to the cart (the real version!)
+  const handleAddToCart = async (product) => {
     try {
+      // We'll send a POST request with the product ID and our session ID
       const response = await fetch(`${API_BASE_URL}/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ product_id: product.id }),
+        body: JSON.stringify({ 
+          product_id: product.id, 
+          cart_session_id: cartSessionId,
+          quantity: 1 // For now, we'll just add one at a time
+        }),
       });
 
       if (!response.ok) {
-        // The server sent an error, so let's check what it said.
         const errorData = await response.json();
         throw new Error(errorData.detail || `Couldn't add ${product.name} to cart.`);
       }
 
-      setCartItems(prevCount => prevCount + 1); // Increment the local cart count
-      showFlashMessage(`${product.name} added to cart. Nice!`);
+      // Success! Now let's update our local state with the new cart item
+      const addedCartItem = await response.json();
+      
+      // Check if the item is already in our state. If so, just update the quantity.
+      setCartItems(prevItems => {
+        const existingItemIndex = prevItems.findIndex(item => item.product_id === addedCartItem.product_id);
+        if (existingItemIndex > -1) {
+          const updatedItems = [...prevItems];
+          updatedItems[existingItemIndex].quantity += 1;
+          return updatedItems;
+        } else {
+          // Otherwise, add the new item to the list.
+          return [...prevItems, addedCartItem];
+        }
+      });
 
+      showFlashMessage(`${product.name} added to cart. Nice!`);
     } catch (e) {
       console.error("Oh no, an error:", e);
       showFlashMessage(`Error adding to cart: ${e.message}`, 'error');
     }
   };
+
+  // Now, let's calculate the total count of items in the cart
+  const totalCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans text-gray-800 p-4">
@@ -81,9 +121,9 @@ function App() {
         <div className="relative">
           <ShoppingCart className="w-8 h-8 text-indigo-600 cursor-pointer" />
           {/* Only show the badge if there are items */}
-          {cartItems > 0 && (
+          {totalCartCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-              {cartItems}
+              {totalCartCount}
             </span>
           )}
         </div>
