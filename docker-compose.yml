@@ -39,6 +39,13 @@ services:
       # We tell the API how to connect to the database.
       # The hostname 'db' works automatically because that's the service name here.
       DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
+    # NEW: A more reliable health check using Python.
+    healthcheck:
+      # This command uses Python to try to connect to the port, which is guaranteed to be available.
+      test: ["CMD-SHELL", "python -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(1); s.connect(('localhost', 8000)); s.close()\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     depends_on:
       # We're telling Docker to wait for the database to be healthy before starting this service.
       db:
@@ -75,9 +82,9 @@ services:
       # We have to wait for the app to be built before Nginx can serve it.
       frontend-builder:
         condition: service_completed_successfully
-      # We also need the API to be running so Nginx can proxy requests to it.
+      # We now wait for the API service to be HEALTHY before Nginx starts!
       product-catalog-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - ecommerce_network
 
