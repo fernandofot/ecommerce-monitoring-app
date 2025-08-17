@@ -1,41 +1,54 @@
-// Filename: server.js
-// This file contains the code for the API Gateway microservice.
+//  api-gateway/server.js
+// This is the core of our API Gateway. It's built with Express and handles
+// all incoming API requests, routing them to the right microservice.
 
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
-// Create an Express application
+// Let's set up our Express application.
 const app = express();
+// We'll use port 3000, or whatever the environment specifies.
 const PORT = process.env.PORT || 3000;
 
-// Middleware to log incoming requests
+// This is a simple middleware to log every request that hits our gateway.
+// It's super helpful for debugging!
 app.use((req, res, next) => {
     console.log(`[API Gateway] Received request: ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// Define the proxy middleware for the Product Catalog Service
-// All requests to /api/products will be forwarded to the product_catalog_app service
+// We're setting up a proxy for the Product Catalog Service.
+// This is the magic that makes our microservices work together seamlessly.
 const productCatalogProxy = createProxyMiddleware({
-    target: 'http://product_catalog_app:8000', // Docker service name and port
-    changeOrigin: true, // Needed for virtual hosts
+    // 'product_catalog_app' is the service name from our docker-compose.yml file.
+    // Docker's internal DNS makes this work automatically.
+    target: 'http://product_catalog_app:8000',
+    // 'changeOrigin' is important to make sure the target host header is
+    // set correctly for the backend service.
+    changeOrigin: true,
     pathRewrite: {
-        '^/api/products': '/', // Rewrite the URL: /api/products/items becomes /items
+        // This line is a crucial piece of the puzzle! It strips the '/api/products'
+        // prefix from the incoming URL before it's sent to the backend.
+        // For example: '/api/products/items' becomes just '/items'.
+        '^/api/products': '/',
     },
     onProxyReq: (proxyReq, req, res) => {
+        // Just a little log to let us know the request is being proxied.
         console.log(`[API Gateway] Proxying request to Product Catalog: ${proxyReq.path}`);
     },
 });
 
-// Use the proxy middleware for the specific route
+// Here, we're telling Express to use our proxy for any requests that start
+// with '/api/products'.
 app.use('/api/products', productCatalogProxy);
 
-// Basic root route for testing the gateway
+// This is just a basic route to confirm that the gateway itself is up and running.
+// You can hit this endpoint directly at http://localhost/ if you want to check.
 app.get('/', (req, res) => {
     res.send('API Gateway is running!');
 });
 
-// Start the server
+// Time to fire up the server!
 app.listen(PORT, () => {
     console.log(`[API Gateway] Server is listening on port ${PORT}`);
 });
