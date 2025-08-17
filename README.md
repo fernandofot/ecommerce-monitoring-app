@@ -15,6 +15,8 @@ The application is structured as a set of independent microservices, each potent
 
     * **Nginx Reverse Proxy:** Acts as the entry point, serving the React static files and proxying API requests to the backend service.
 
+    * **API Gateway / Frontend BFF (Node.js / Express):** The primary entry point for the frontend, routing and aggregating calls to backend services.
+
     * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering).
 
         * **Technology:** Python 3.9+, FastAPI, SQLAlchemy, MySQL.
@@ -52,13 +54,20 @@ This guide assumes you have Docker installed and running on your system.
 
 Ensure your project directory is structured as follows:
 ```
-ecommerce-app/
+ecommerce-monitoring-app/
+├── api-gateway/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── server.js
 ├── product-catalog-service/
 │   ├── main.py
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── public/
+│   │   ├── images/
+│   │   │   ├── catalog_api.png
+│   │   │   └── home.png
 │   │   └── index.html
 │   ├── src/
 │   │   ├── App.js
@@ -70,7 +79,7 @@ ecommerce-app/
 │   └── Dockerfile
 ├── docker-compose.yml
 └── .gitignore
-└── README.md (this file)
+└── README.md
 ```
 **2. Docker Compose Configuration**
 
