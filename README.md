@@ -27,8 +27,6 @@ The application is structured as a set of independent microservices, each potent
 
 * **Planned Services:** (Future additions to expand the microservices architecture)
 
-    * API Gateway / Frontend BFF (Node.js / Express): Primary entry point for the frontend, aggregating calls to backend services.
-
     * User & Authentication Service (Java / Spring Boot): Handles user registration, login, and authentication.
 
     * Order Processing Service (.NET / ASP.NET Core): Manages the order lifecycle.
