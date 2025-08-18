@@ -1,101 +1,132 @@
 # docker-compose.yml
+# This is our master blueprint! It tells Docker exactly how to build,
+# configure, and connect all the different parts of our application.
 
 services:
-  # The database service. It's the heart of our application.
+  # The database service, the brain of our application! We're using MySQL.
   db:
-    # We'll use the official MySQL 8.0 image. It's a solid choice.
+    # We'll use the official MySQL 8.0 image because it's reliable and secure.
     image: mysql:8.0
     container_name: mysql_db
     environment:
-      # These are super important for local development.
-      # Remember to change these for a production environment!
+      # These are our credentials for development. A quick note: you should
+      # always use a proper secrets manager for production!
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: ecommerce_db
       MYSQL_USER: user
       MYSQL_PASSWORD: password
     ports:
-      # We're exposing the standard MySQL port so we can connect to it from our computer
-      # with a database tool if we want to.
+      # Exposing the port so we can connect to our database from our
+      # local machine if we need to poke around with a tool like DBeaver.
       - "3306:3306"
     volumes:
-      # This is a named volume to make sure our database data doesn't get lost
-      # every time we stop the container.
+      # This named volume is a lifesaver! It makes sure all our database
+      # data sticks around even if we rebuild or remove the container.
       - db_data:/var/lib/mysql
     healthcheck:
-      # This is a critical check! We're making sure the database is actually ready
-      # before the API service tries to connect to it. It prevents a lot of headaches.
+      # A super important check! This makes sure the database is fully ready
+      # and listening for connections before our other services try to talk to it.
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
     networks:
       - ecommerce_network
 
-  # This is our backend API service, built with FastAPI.
+  # This is our backend API, the heart of the app! We're building it with FastAPI.
   product-catalog-service:
-    # Docker Compose knows to find the Dockerfile in the product-catalog-service folder.
+    # We just point Docker Compose to the directory, and it knows what to do!
     build: ./product-catalog-service
     container_name: product_catalog_app
     environment:
-      # We tell the API how to connect to the database.
-      # The hostname 'db' works automatically because that's the service name here.
+      # We tell our API how to find the database. We can use the service name
+      # 'db' as the hostname because Docker Compose handles the networking for us.
       DATABASE_URL: "mysql+mysqlconnector://user:password@db:3306/ecommerce_db"
-    # NEW: A more reliable health check using Python.
     healthcheck:
-      # This command uses Python to try to connect to the port, which is guaranteed to be available.
+      # Another crucial health check. This one checks if the application is
+      # actually running and accepting connections.
       test: ["CMD-SHELL", "python -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(1); s.connect(('localhost', 8000)); s.close()\""]
       interval: 5s
       timeout: 5s
       retries: 5
     depends_on:
-      # We're telling Docker to wait for the database to be healthy before starting this service.
+      # This is how we make sure our API service waits for the database to be
+      # up and running before it even attempts to start.
       db:
         condition: service_healthy
     networks:
       - ecommerce_network
-      
-  # This container's only job is to build our React app. It's part of a smart two-step process.
+
+  # This is a special container just for building our React app. It helps us
+  # keep our final web server image small and clean.
   frontend-builder:
     build:
       context: ./frontend
-      # We're telling it to stop after the 'build' stage in our multi-stage Dockerfile.
+      # We're specifically targeting the 'build' stage from the Dockerfile.
       target: build
     container_name: ecommerce_frontend_builder
-    # We use a volume to save the built app, which we'll use in the next service.
+    # We use this volume to share the built static files with our Nginx container.
     volumes:
       - frontend_build_data:/app/build
 
-  # This is our Nginx service. It's a super fast web server that will serve our app.
-  nginx:
-    # We're using the official Nginx image directly, which is clean and efficient.
-    image: nginx:alpine
-    container_name: ecommerce_nginx
+  # Our new API Gateway! Think of it as the central traffic cop for all
+  # external API requests.
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
     ports:
-      # Map our computer's port 80 to the container's port 80.
-      # This lets us access the app at http://localhost.
-      - "80:80"
-    volumes:
-      # We grab the built app from the volume we created earlier.
-      - frontend_build_data:/usr/share/nginx/html:ro
-      # CRITICAL FIX: Mounting the custom nginx.conf directly to the main config file.
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # We'll expose this port for now so we can test the gateway directly,
+      # but in the final setup, Nginx will handle all the incoming traffic.
+      - "3000:3000"
+    healthcheck:
+      # A health check to make sure our gateway is ready to route traffic.
+      # We give it a little extra time to start up with `start_period`.
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
-      # We have to wait for the app to be built before Nginx can serve it.
-      frontend-builder:
-        condition: service_completed_successfully
-      # We now wait for the API service to be HEALTHY before Nginx starts!
+      # The gateway needs the product catalog service to be healthy so it
+      # has somewhere to forward requests!
       product-catalog-service:
         condition: service_healthy
     networks:
       - ecommerce_network
 
-# --- A few global settings for Docker Compose ---
+  # This is our Nginx web server, the front door to our application!
+  nginx:
+    # We'll use the official Nginx image.
+    image: nginx:alpine
+    container_name: ecommerce_nginx
+    ports:
+      # Maps port 80 on your computer to the Nginx port in the container.
+      # This means you can just go to http://localhost in your browser.
+      - "80:80"
+    volumes:
+      # We're telling Nginx to grab the built React app from our shared volume...
+      - frontend_build_data:/usr/share/nginx/html:ro
+      # ...and to use our custom configuration file to set up the reverse proxy.
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      # Nginx needs to wait for two things:
+      # 1. The frontend build to be finished.
+      # 2. The API Gateway to be healthy so it can send requests there.
+      frontend-builder:
+        condition: service_completed_successfully
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - ecommerce_network
+
+# --- Global Settings ---
 
 networks:
-  # This creates a network so all our containers can find and talk to each other by name.
+  # This creates a shared network so all our services can talk to
+  # each other by using their service names. It's like a private clubhouse.
   ecommerce_network:
     driver: bridge
 
 volumes:
-  # The named volumes we're using to persist our database data and pass files between services.
+  # These are our persistent named volumes, perfect for sharing data between containers.
   db_data:
   frontend_build_data:
