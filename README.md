@@ -113,7 +113,9 @@ This command will:
 
 * Create and start the ```product_catalog_app``` container ensuring it waits for the database to be healthy.
 
-* Create and start the ```ecommerce_nginx``` container, which serves the built React app and proxies API requests to the ```product_catalog_app```.
+* Create and start the ```api_gateway``` container.
+
+* Create and start the ```ecommerce_nginx``` container, which serves the built React app and proxies API requests to the ```api_gateway```.
 
 **4. Verify Services**
 
@@ -121,7 +123,7 @@ Check that both containers are running:
 ```
 docker ps
 ```
-You should see both ```mysql_db```, ```product_catalog_app``` and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
+You should see ```mysql_db```, ```product_catalog_app```, ```api_gateway```, and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
 
 **5. Access the Application**
 
@@ -140,7 +142,7 @@ You should see both ```mysql_db```, ```product_catalog_app``` and ```ecommerce_n
   **New Feature: Add to Cart**
     Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header. 
 
-* **Product Catalog Service API Docs (via Nginx):**  You can access the FastAPI interactive documentation (Swagger UI) through Nginx:
+* **Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
 
 ```
 http://localhost/api/docs
