@@ -97,6 +97,11 @@ class AddToCartRequest(BaseModel):
     cart_session_id: str
     quantity: Optional[int] = 1
 
+# NEW! A model for the "remove from cart" request.
+class RemoveFromCartRequest(BaseModel):
+    product_id: int
+    cart_session_id: str
+
 # --- FastAPI App Setup ---
 # Let's get our FastAPI app instance ready.
 app = FastAPI(
@@ -344,3 +349,25 @@ async def remove_from_cart(cart_item_id: int, db: Session = Depends(get_db)):
     logger.info(f"Cart item with ID {cart_item_id} removed successfully.")
     # FastAPI returns a 204 No Content for a successful deletion, so no message needed.
     return {"message": "Cart item removed successfully"}
+
+# NEW: Endpoint to handle POST requests from the frontend
+@app.post("/cart/remove", status_code=200, summary="Remove a product from the cart by session ID and product ID")
+async def remove_from_cart_by_session(request: RemoveFromCartRequest, db: Session = Depends(get_db)):
+    logger.info(f"Attempting to remove product ID {request.product_id} from cart session {request.cart_session_id}.")
+    
+    # Find the specific cart item to delete
+    cart_item = db.query(CartItem).filter(
+        CartItem.cart_session_id == request.cart_session_id,
+        CartItem.product_id == request.product_id
+    ).first()
+
+    if not cart_item:
+        # If the item isn't in the cart, we can just return success and a message.
+        logger.warning("Attempted to remove an item that was not in the cart.")
+        raise HTTPException(status_code=404, detail="Item not found in cart")
+
+    db.delete(cart_item)
+    db.commit()
+    logger.info(f"Successfully removed product ID {request.product_id} from cart.")
+
+    return {"status": "ok", "message": "Item removed from cart."}
