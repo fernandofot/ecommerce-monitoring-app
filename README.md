@@ -17,7 +17,7 @@ The application is structured as a set of independent microservices, each potent
 
     * **API Gateway / Frontend BFF (Node.js / Express):** The primary entry point for the frontend, routing and aggregating calls to backend services.
 
-    * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering).
+    * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering) and stock levels.
 
         * **Technology:** Python 3.9+, FastAPI, SQLAlchemy, MySQL.
         
@@ -31,7 +31,7 @@ The application is structured as a set of independent microservices, each potent
 
     * Order Processing Service (.NET / ASP.NET Core): Manages the order lifecycle.
 
-    * Inventory Service (Node.js): Manages product stock levels.
+    * Inventory Service (Node.js): **(Deferred)** The core functionality of managing product stock is currently handled by the Product Catalog Service. A dedicated microservice would be needed for more complex inventory management, such as low-stock alerts or multiple warehouses.
 
 ## Observability Focus
 
@@ -140,7 +140,7 @@ You should see ```mysql_db```, ```product_catalog_app```, ```api_gateway```, and
     ![E-commerce Store Frontend](frontend/public/images/home.png)
 
   **New Feature: Add to Cart**
-    Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header. 
+    Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header and decrease the product's stock level in the database. 
 
 * **Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
 
