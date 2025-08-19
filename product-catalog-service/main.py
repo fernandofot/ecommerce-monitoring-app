@@ -288,9 +288,6 @@ async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
     if cart_item:
         # If it's there, we just update the quantity. Easy!
         cart_item.quantity += request.quantity
-        db.commit()
-        db.refresh(cart_item)
-        logger.info(f"Updated quantity for product ID {request.product_id} in cart {request.cart_session_id}. New quantity: {cart_item.quantity}")
     else:
         # If it's a brand new item, we create a new entry.
         cart_item = CartItem(
@@ -299,9 +296,19 @@ async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
             quantity=request.quantity
         )
         db.add(cart_item)
-        db.commit()
-        db.refresh(cart_item)
-        logger.info(f"Added new product ID {request.product_id} to cart session {request.cart_session_id}.")
+    
+    # NEW LOGIC: This is the crucial part that was missing!
+    # Decrease the stock quantity on the product itself.
+    product.stock_quantity -= request.quantity
+    
+    # Now, save all the changes to the database.
+    db.commit()
+    
+    # Refresh the objects to get the latest data from the database.
+    db.refresh(cart_item)
+    db.refresh(product)
+
+    logger.info(f"Product ID {request.product_id} added to cart and stock decreased to {product.stock_quantity}.")
     
     return cart_item
 

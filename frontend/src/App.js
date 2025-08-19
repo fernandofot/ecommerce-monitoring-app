@@ -1,4 +1,3 @@
-// frontend/src/App.js
 import React, { useEffect, useState } from 'react';
 import { ShoppingCart, X } from 'lucide-react'; // Added 'X' for the close button icon
 import { v4 as uuidv4 } from 'uuid';
@@ -20,7 +19,7 @@ function App() {
     setTimeout(() => setMessage({ text: '', type: '' }), 3000);
   };
 
-  // NEW! We'll generate a unique ID for our cart session.
+  // We'll generate a unique ID for our cart session.
   // We'll store it in localStorage so the cart persists across page reloads.
   const getCartSessionId = () => {
     let sessionId = localStorage.getItem('cartSessionId');
@@ -47,7 +46,7 @@ function App() {
         const productsData = await productsResponse.json();
         setProducts(productsData);
 
-        // NEW! Now, let's grab the cart items for this session
+        // Now, let's grab the cart items for this session
         const cartResponse = await fetch(`${API_BASE_URL}/cart/${cartSessionId}`);
         if (!cartResponse.ok) {
           throw new Error(`Failed to load cart items.`);
@@ -70,7 +69,7 @@ function App() {
     };
 
     fetchInitialData();
-  }, []); // The empty array means this runs only once
+  }, [cartSessionId]); // The empty array means this runs only once
 
   // Let's handle adding a product to the cart (the real version!)
   const handleAddToCart = async (product) => {
@@ -108,6 +107,12 @@ function App() {
           return [...prevItems, addedCartItem];
         }
       });
+      
+      // THIS IS THE NEW LOGIC!
+      // Find the product and update its stock quantity in the local state.
+      setProducts(prevProducts => prevProducts.map(p =>
+          p.id === product.id ? { ...p, stock_quantity: p.stock_quantity - 1 } : p
+      ));
 
       showFlashMessage(`${product.name} added to cart. Nice!`);
     } catch (e) {
@@ -116,9 +121,10 @@ function App() {
     }
   };
 
-  // NEW: Function to remove an item from the cart
+  // Function to remove an item from the cart
   const handleRemoveFromCart = async (productId) => {
     try {
+      // We'll send a POST request with the product ID and our session ID
       const response = await fetch(`${API_BASE_URL}/cart/remove`, {
         method: 'POST',
         headers: {
@@ -135,8 +141,18 @@ function App() {
         throw new Error(errorData.detail || `Couldn't remove item from cart.`);
       }
 
-      // Update local state by removing the item
+      // Find the item to be removed from the local state to get its quantity
+      const itemToRemove = cartItems.find(item => item.product_id === productId);
+      const quantityToRemove = itemToRemove ? itemToRemove.quantity : 0;
+      
+      // Update local state by removing the item from the cart
       setCartItems(prevItems => prevItems.filter(item => item.product_id !== productId));
+      
+      // Add the removed quantity back to the product's stock.
+      setProducts(prevProducts => prevProducts.map(p =>
+        p.id === productId ? { ...p, stock_quantity: p.stock_quantity + quantityToRemove } : p
+      ));
+
       showFlashMessage(`Item removed from cart.`, 'success');
 
     } catch (e) {
@@ -148,7 +164,7 @@ function App() {
   // Now, let's calculate the total count of items in the cart
   const totalCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   
-  // NEW: Calculate the total price of all items in the cart
+  // Calculate the total price of all items in the cart
   const calculateTotal = () => {
     // We need to map the cart items to find the corresponding product price
     const productMap = new Map(products.map(p => [p.id, p.price]));
@@ -236,9 +252,12 @@ function App() {
                   </div>
                   <button
                     onClick={() => handleAddToCart(product)}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md"
+                    // Added a disabled attribute so you can't click when stock is 0
+                    disabled={product.stock_quantity <= 0}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    Add to Cart
+                    {/* Changed the button text to reflect the stock status */}
+                    {product.stock_quantity > 0 ? "Add to Cart" : "Out of Stock"}
                   </button>
                 </div>
               </div>
@@ -247,7 +266,7 @@ function App() {
         )}
       </main>
 
-      {/* NEW: Shopping Cart Modal */}
+      {/* Shopping Cart Modal */}
       <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${isCartOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
         {/* Backdrop overlay */}
         <div onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
