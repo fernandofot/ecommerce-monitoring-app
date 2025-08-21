@@ -55,14 +55,14 @@ function App() {
         setCartItems(cartData);
 
       } catch (e) {
-  // This is a common error and we should handle it gracefully without crashing.
-  if (e instanceof SyntaxError) {
-    console.error("The server response was not valid JSON:", e);
-    setError("Received an invalid response from the server. The backend might not be fully operational.");
-  } else {
-    console.error("Something went wrong with the fetch:", e);
-    setError(`Failed to load data: ${e.message}. The backend might be down.`);
-  }
+        // This is a common error and we should handle it gracefully without crashing.
+        if (e instanceof SyntaxError) {
+          console.error("The server response was not valid JSON:", e);
+          setError("Received an invalid response from the server. The backend might not be fully operational.");
+        } else {
+          console.error("Something went wrong with the fetch:", e);
+          setError(`Failed to load data: ${e.message}. The backend might be down.`);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -160,7 +160,71 @@ function App() {
       showFlashMessage(`Error removing item from cart: ${e.message}`, 'error');
     }
   };
-  
+
+  // NEW FUNCTION: Handles increasing or decreasing the quantity of an item
+  const handleUpdateQuantity = async (productId, delta) => {
+      // Find the item in the cart and the product in the product list
+      const item = cartItems.find(i => i.product_id === productId);
+      const product = products.find(p => p.id === productId);
+      
+      // Safety checks
+      if (!item || !product) {
+          console.error("Item or product not found.");
+          showFlashMessage("Error updating quantity.", 'error');
+          return;
+      }
+
+      const newQuantity = item.quantity + delta;
+      
+      // Early exit if trying to decrease below 1 or increase past stock
+      if (newQuantity < 1) {
+          // If the new quantity is less than 1, we should remove the item
+          await handleRemoveFromCart(productId);
+          return;
+      }
+      if (newQuantity > product.stock_quantity + item.quantity) {
+          showFlashMessage(`You can only add up to the remaining stock of ${product.stock_quantity}!`, 'error');
+          return;
+      }
+
+      try {
+          // Send an API request to update the quantity
+          const response = await fetch(`${API_BASE_URL}/cart/update-quantity`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  product_id: productId,
+                  cart_session_id: cartSessionId,
+                  quantity: newQuantity
+              }),
+          });
+          
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || `Couldn't update quantity for ${product.name}.`);
+          }
+
+          // Update local state with the new quantity
+          setCartItems(prevItems => prevItems.map(i => 
+              i.product_id === productId ? { ...i, quantity: newQuantity } : i
+          ));
+          
+          // Also update the stock quantity in the products list
+          setProducts(prevProducts => prevProducts.map(p => 
+              p.id === productId ? { ...p, stock_quantity: p.stock_quantity - delta } : p
+          ));
+
+          showFlashMessage(`${product.name} quantity updated!`, 'success');
+
+      } catch (e) {
+          console.error("Error updating quantity:", e);
+          showFlashMessage(`Error updating quantity: ${e.message}`, 'error');
+      }
+  };
+
+
   // Now, let's calculate the total count of items in the cart
   const totalCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   
@@ -293,11 +357,35 @@ function App() {
                   if (!product) return null; // Defensive check
 
                   return (
+                    // The main container for each cart item
                     <div key={item.product_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                      {/* Left side: Product Name and Quantity Controls */}
                       <div className="flex-grow">
                         <p className="font-semibold text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        {/* NEW: Quantity controls block */}
+                        <div className="flex items-center text-sm text-gray-600 mt-1">
+                          <span className="mr-2">Quantity:</span>
+                          <div className="flex items-center space-x-2">
+                            {/* Decrease button */}
+                            <button
+                              onClick={() => handleUpdateQuantity(item.product_id, -1)}
+                              className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-300 transition duration-200"
+                            >
+                              -
+                            </button>
+                            <span className="font-bold text-base">{item.quantity}</span>
+                            {/* Increase button */}
+                            <button
+                              onClick={() => handleUpdateQuantity(item.product_id, 1)}
+                              className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-300 transition duration-200"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Right side: Total Price and Remove button */}
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-gray-800">€{(product.price * item.quantity).toFixed(2)}</span>
                         <button onClick={() => handleRemoveFromCart(item.product_id)} className="p-1 rounded-full text-red-500 hover:bg-red-100 transition-colors duration-200">

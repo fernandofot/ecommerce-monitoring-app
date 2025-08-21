@@ -1,17 +1,17 @@
 # main.py
 
 # A whole lot of imports. This is a common sight in FastAPI projects!
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship # Hey, look! We need 'relationship' for our new model!
+from sqlalchemy.orm import sessionmaker, Session, relationship
 from sqlalchemy.exc import OperationalError
 import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio # We'll need this for waiting on the database to start up
+import asyncio
 
 # --- Basic Logging Setup ---
 # This is a good starting point for local development.
@@ -36,7 +36,7 @@ class Product(Base):
     stock_quantity = Column(Integer, nullable=False)
     image_url = Column(String(512), nullable=True)
     category = Column(String(100), index=True, nullable=True)
-    
+
 # NEW! This is our model for a single item in a shopping cart.
 # We're using a 'cart_session_id' to identify a cart, which is a good
 # temporary solution until we build out proper user authentication.
@@ -46,7 +46,7 @@ class CartItem(Base):
     cart_session_id = Column(String(255), index=True, nullable=False)
     product_id = Column(Integer, ForeignKey('products.id'))
     quantity = Column(Integer, nullable=False, default=1)
-    
+
     # This is the magic of 'relationship'. It lets us easily
     # get all the details of the product linked to this cart item!
     product = relationship("Product")
@@ -76,8 +76,6 @@ class ProductResponse(ProductBase):
     id: int
     class Config:
         orm_mode = True
-        # NOTE: If you're on a newer Pydantic, you'll need to use `from_attributes = True` instead of `orm_mode`.
-        # Just a heads up in case you see errors!
 
 # NEW! A Pydantic model for our cart item response.
 # Notice how it includes the full `ProductResponse` model? That's what `relationship` above lets us do!
@@ -101,6 +99,13 @@ class AddToCartRequest(BaseModel):
 class RemoveFromCartRequest(BaseModel):
     product_id: int
     cart_session_id: str
+
+# NEW! A model for updating a cart item quantity.
+# This matches the data the frontend is likely sending.
+class UpdateCartQuantityRequest(BaseModel):
+    cart_session_id: str
+    product_id: int
+    quantity: int
 
 # --- FastAPI App Setup ---
 # Let's get our FastAPI app instance ready.
@@ -262,23 +267,23 @@ async def delete_product(product_id: int, db: Session = Depends(get_db)):
     logger.info(f"Product {product_id} deleted.")
     return {"message": "Product deleted successfully"}
 
-# --- NEW: API Endpoints for Cart Management! ---
+# --- API Endpoints for Cart Management! ---
 # These are the new routes for our cart functionality.
 
 @app.post("/cart/add", response_model=CartItemResponse, status_code=201, summary="Add a product to a cart session")
 async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
     logger.info(f"Adding product ID {request.product_id} to cart session {request.cart_session_id}.")
-    
+
     product = db.query(Product).filter(Product.id == request.product_id).first()
     if not product:
         logger.warning(f"Product with ID {request.product_id} not found!")
         raise HTTPException(status_code=404, detail="Product not found")
-        
+
     # Is there enough stock? This is a critical check!
     if product.stock_quantity < request.quantity:
         logger.warning(f"Not enough stock for product ID {request.product_id}. Requested: {request.quantity}, Available: {product.stock_quantity}")
         raise HTTPException(status_code=400, detail="Insufficient stock available")
-        
+
     # Let's see if this product is already in the cart for this session.
     cart_item = db.query(CartItem).filter(
         CartItem.cart_session_id == request.cart_session_id,
@@ -296,20 +301,20 @@ async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
             quantity=request.quantity
         )
         db.add(cart_item)
-    
+
     # NEW LOGIC: This is the crucial part that was missing!
     # Decrease the stock quantity on the product itself.
     product.stock_quantity -= request.quantity
-    
+
     # Now, save all the changes to the database.
     db.commit()
-    
+
     # Refresh the objects to get the latest data from the database.
     db.refresh(cart_item)
     db.refresh(product)
 
     logger.info(f"Product ID {request.product_id} added to cart and stock decreased to {product.stock_quantity}.")
-    
+
     return cart_item
 
 @app.get("/cart/{cart_session_id}", response_model=List[CartItemResponse], summary="Get all items in a cart session")
@@ -322,9 +327,67 @@ async def get_cart(cart_session_id: str, db: Session = Depends(get_db)):
         return []
     logger.info(f"Found {len(cart_items)} items for cart session {cart_session_id}.")
     return cart_items
+
+# NEW ENDPOINT: Handles the POST request from the frontend to update quantity.
+@app.post("/cart/update-quantity", response_model=CartItemResponse, summary="Update quantity of a product in the cart by session and product ID")
+async def update_cart_item_quantity(request: UpdateCartQuantityRequest, db: Session = Depends(get_db)):
+    logger.info(f"Received request to update product ID {request.product_id} for session {request.cart_session_id} to quantity {request.quantity}.")
     
+    # We must find the existing cart item first.
+    cart_item = db.query(CartItem).filter(
+        CartItem.cart_session_id == request.cart_session_id,
+        CartItem.product_id == request.product_id
+    ).first()
+    
+    if not cart_item:
+        logger.warning(f"Could not find cart item for product ID {request.product_id} in session {request.cart_session_id}.")
+        raise HTTPException(status_code=404, detail="Cart item not found")
+
+    # Get the related product to check stock.
+    product = db.query(Product).filter(Product.id == cart_item.product_id).first()
+    if not product:
+        logger.error(f"Associated product not found for cart item ID {cart_item.id}.")
+        raise HTTPException(status_code=500, detail="Associated product not found.")
+        
+    current_quantity = cart_item.quantity
+    new_quantity = request.quantity
+
+    if new_quantity < 0:
+        raise HTTPException(status_code=400, detail="Quantity cannot be negative")
+    
+    # Calculate the change in quantity to update the stock.
+    quantity_change = new_quantity - current_quantity
+    
+    if quantity_change > 0:
+        # If increasing, check for sufficient stock.
+        if product.stock_quantity < quantity_change:
+            logger.warning(f"Insufficient stock for product ID {product.id}. Available: {product.stock_quantity}. Needed: {quantity_change}.")
+            raise HTTPException(status_code=400, detail="Insufficient stock available.")
+        product.stock_quantity -= quantity_change
+    elif quantity_change < 0:
+        # If decreasing, return stock.
+        product.stock_quantity += abs(quantity_change)
+
+    # Update the cart item quantity.
+    cart_item.quantity = new_quantity
+    
+    # If the new quantity is 0, remove the item entirely.
+    if new_quantity == 0:
+        db.delete(cart_item)
+        db.commit()
+        logger.info(f"Removed item from cart for product ID {request.product_id}.")
+        return {"message": "Cart item removed successfully"}
+    
+    # Commit the changes to the database.
+    db.commit()
+    db.refresh(cart_item)
+    db.refresh(product)
+    
+    logger.info(f"Updated quantity for cart item {cart_item.id} to {new_quantity}. New product stock: {product.stock_quantity}.")
+    return cart_item
+
 @app.put("/cart/update/{cart_item_id}", response_model=CartItemResponse, summary="Update quantity of a product in the cart")
-async def update_cart_item_quantity(cart_item_id: int, quantity: int, db: Session = Depends(get_db)):
+async def update_cart_item_quantity_by_id(cart_item_id: int, quantity: int, db: Session = Depends(get_db)):
     logger.info(f"Received request to update cart item {cart_item_id} to quantity {quantity}.")
     
     cart_item = db.query(CartItem).filter(CartItem.id == cart_item_id).first()
@@ -372,6 +435,13 @@ async def remove_from_cart_by_session(request: RemoveFromCartRequest, db: Sessio
         # If the item isn't in the cart, we can just return success and a message.
         logger.warning("Attempted to remove an item that was not in the cart.")
         raise HTTPException(status_code=404, detail="Item not found in cart")
+    
+    # Return the stock to the product before deleting the cart item
+    product = db.query(Product).filter(Product.id == cart_item.product_id).first()
+    if product:
+        product.stock_quantity += cart_item.quantity
+        db.refresh(product)
+        logger.info(f"Returned {cart_item.quantity} units of stock for product ID {product.id}.")
 
     db.delete(cart_item)
     db.commit()
