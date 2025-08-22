@@ -140,7 +140,9 @@ You should see ```mysql_db```, ```product_catalog_app```, ```api_gateway```, and
     ![E-commerce Store Frontend](frontend/public/images/home.png)
 
   **New Feature: Add to Cart**
-    Clicking the "Add to Cart" button on any product will now send a request to the backend and update a simulated cart count in the header and decrease the product's stock level in the database. 
+    
+    * **Add to Cart:** Clicking the "Add to Cart" button on any product sends a request to the backend, updates a simulated cart count, and decreases the product's stock level.
+    * **Clear Cart:** A new "Clear Cart" button on the cart page sends a request to the backend, which removes all items from the cart and returns the stock to the product catalog. 
 
 * **Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
 
