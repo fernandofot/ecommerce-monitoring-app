@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart, X } from 'lucide-react'; // Added 'X' for the close button icon
+import { ShoppingCart, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 const API_BASE_URL = '/api';
@@ -225,6 +225,54 @@ function App() {
   };
 
 
+  // --- START NEW CODE ---
+  /**
+   * Clears the entire cart by making an API call and updating local state.
+   */
+  const handleClearCart = async () => {
+    // A simple confirmation dialog to prevent accidental clearing.
+    // NOTE: This will not work in the Canvas preview, but is good practice.
+    if (!window.confirm("Are you sure you want to clear your cart? This cannot be undone.")) {
+      return; // Exit if the user cancels
+    }
+
+    try {
+      setIsLoading(true);
+      // Call the new API endpoint to clear the cart
+      const response = await fetch(`${API_BASE_URL}/cart/clear`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cart_session_id: cartSessionId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Failed to clear cart.`);
+      }
+
+      // We'll trust the backend response and re-fetch products to ensure state is fully synchronized
+      const productsResponse = await fetch(`${API_BASE_URL}/products/`);
+      const productsData = await productsResponse.json();
+      setProducts(productsData);
+
+      // Clear the cart items state
+      setCartItems([]);
+      showFlashMessage("Cart cleared successfully!", "success");
+
+    } catch (e) {
+      console.error("Error clearing cart:", e);
+      showFlashMessage(`Error clearing cart: ${e.message}`, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // --- END NEW CODE ---
+
+
   // Now, let's calculate the total count of items in the cart
   const totalCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   
@@ -404,6 +452,15 @@ function App() {
                   <span>Total:</span>
                   <span>€{calculateTotal()}</span>
                 </div>
+                {/* --- START NEW CODE --- */}
+                {/* New button to clear the cart */}
+                <button
+                  onClick={handleClearCart}
+                  className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out shadow-md"
+                >
+                  Clear Cart
+                </button>
+                {/* --- END NEW CODE --- */}
               </div>
             )}
           </div>

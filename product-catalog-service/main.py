@@ -107,6 +107,10 @@ class UpdateCartQuantityRequest(BaseModel):
     product_id: int
     quantity: int
 
+# NEW! A model for clearing the cart. It just needs the session ID.
+class ClearCartRequest(BaseModel):
+    cart_session_id: str
+
 # --- FastAPI App Setup ---
 # Let's get our FastAPI app instance ready.
 app = FastAPI(
@@ -386,41 +390,7 @@ async def update_cart_item_quantity(request: UpdateCartQuantityRequest, db: Sess
     logger.info(f"Updated quantity for cart item {cart_item.id} to {new_quantity}. New product stock: {product.stock_quantity}.")
     return cart_item
 
-@app.put("/cart/update/{cart_item_id}", response_model=CartItemResponse, summary="Update quantity of a product in the cart")
-async def update_cart_item_quantity_by_id(cart_item_id: int, quantity: int, db: Session = Depends(get_db)):
-    logger.info(f"Received request to update cart item {cart_item_id} to quantity {quantity}.")
-    
-    cart_item = db.query(CartItem).filter(CartItem.id == cart_item_id).first()
-    if not cart_item:
-        raise HTTPException(status_code=404, detail="Cart item not found")
-
-    # If the user sets the quantity to 0 or less, we should just remove the item.
-    if quantity <= 0:
-        db.delete(cart_item)
-        db.commit()
-        raise HTTPException(status_code=200, detail="Cart item removed")
-
-    cart_item.quantity = quantity
-    db.commit()
-    db.refresh(cart_item)
-    logger.info(f"Updated quantity for cart item {cart_item_id} to {quantity}.")
-    return cart_item
-
-@app.delete("/cart/item/{cart_item_id}", status_code=204, summary="Remove a product from the cart")
-async def remove_from_cart(cart_item_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Removing cart item with ID: {cart_item_id}")
-    
-    cart_item = db.query(CartItem).filter(CartItem.id == cart_item_id).first()
-    if not cart_item:
-        raise HTTPException(status_code=404, detail="Cart item not found")
-        
-    db.delete(cart_item)
-    db.commit()
-    logger.info(f"Cart item with ID {cart_item_id} removed successfully.")
-    # FastAPI returns a 204 No Content for a successful deletion, so no message needed.
-    return {"message": "Cart item removed successfully"}
-
-# NEW: Endpoint to handle POST requests from the frontend
+# NEW ENDPOINT: Handles the POST requests from the frontend
 @app.post("/cart/remove", status_code=200, summary="Remove a product from the cart by session ID and product ID")
 async def remove_from_cart_by_session(request: RemoveFromCartRequest, db: Session = Depends(get_db)):
     logger.info(f"Attempting to remove product ID {request.product_id} from cart session {request.cart_session_id}.")
@@ -448,3 +418,31 @@ async def remove_from_cart_by_session(request: RemoveFromCartRequest, db: Sessio
     logger.info(f"Successfully removed product ID {request.product_id} from cart.")
 
     return {"status": "ok", "message": "Item removed from cart."}
+
+# This is the new endpoint to handle the /cart/clear request.
+# The endpoint expects a POST request with a JSON body containing the cart_session_id.
+@app.post("/cart/clear", summary="Clear all items from a cart session")
+async def clear_cart_by_session(request: ClearCartRequest, db: Session = Depends(get_db)):
+    logger.info(f"Attempting to clear cart for session ID: {request.cart_session_id}.")
+
+    # Find all items associated with the session ID.
+    cart_items = db.query(CartItem).filter(CartItem.cart_session_id == request.cart_session_id).all()
+
+    if not cart_items:
+        logger.warning("Attempted to clear a cart that was already empty or did not exist.")
+        return {"message": "Cart was already empty or did not exist."}
+
+    # Iterate over the items and return their stock to the products.
+    for item in cart_items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if product:
+            product.stock_quantity += item.quantity
+            db.refresh(product)
+            logger.info(f"Returned {item.quantity} units of stock for product ID {product.id}.")
+        # Delete the cart item.
+        db.delete(item)
+    
+    db.commit()
+    logger.info(f"Successfully cleared cart for session ID: {request.cart_session_id}.")
+    
+    return {"status": "ok", "message": "Cart cleared successfully."}

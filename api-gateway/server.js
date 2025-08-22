@@ -40,25 +40,17 @@ app.get('/', (req, res) => {
 // --- Consolidated API Proxy ---
 // This is the core of our gateway. We're setting up a single middleware to
 // handle all requests that start with '/api'.
-// We're using a smart `pathRewrite` function to make sure each request gets
-// sent to the backend with the correct URL. It's much more reliable!
+// The pathRewrite now correctly removes the '/api' prefix from all requests
+// before they are forwarded to the backend service. This is a more general
+// and robust solution than specifying each path individually.
 app.use('/api', createProxyMiddleware({
   target: PRODUCT_CATALOG_URL,
   changeOrigin: true, // This is a good practice for virtual hosting.
-  pathRewrite: (path, req) => {
-    if (path.startsWith('/api/products')) {
-      // Looks for a '/products' request and rewrites it.
-      // So, /api/products becomes /products for the backend.
-      return path.replace('/api/products', '/products');
-    }
-    if (path.startsWith('/api/docs')) {
-      // Handles the documentation route in a similar way.
-      return path.replace('/api/docs', '/docs');
-    }
-    // If we don't need to rewrite the path, we just return it as is.
-    return path;
+  pathRewrite: {
+    '^/api/': '/' // This regex-based rewrite removes '/api/' from the start of the path.
   }
 }));
+
 
 // =========================================================================
 // Server Initialization
