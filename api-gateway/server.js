@@ -19,6 +19,8 @@ const PORT = process.env.PORT || 3000;
 // These are usually set up for us automatically by Docker Compose.
 // The service names are what we use to talk to them within the Docker network.
 const PRODUCT_CATALOG_URL = process.env.PRODUCT_CATALOG_URL || 'http://product_catalog_app:8000';
+// NEW: We've added the URL for our new user and authentication service.
+const USER_AUTH_URL = process.env.USER_AUTH_URL || 'http://user_auth_app:8080';
 
 // =========================================================================
 // API Gateway Routing and Proxying
@@ -37,12 +39,20 @@ app.get('/', (req, res) => {
     res.send('API Gateway is running!');
 });
 
-// --- Consolidated API Proxy ---
-// This is the core of our gateway. We're setting up a single middleware to
-// handle all requests that start with '/api'.
-// The pathRewrite now correctly removes the '/api' prefix from all requests
-// before they are forwarded to the backend service. This is a more general
-// and robust solution than specifying each path individually.
+// --- NEW: User & Authentication API Proxy ---
+// This middleware specifically handles requests for the new user service.
+// It's important to place this before the more general /api route below,
+// so requests to /api/auth get handled correctly.
+app.use('/api/auth', createProxyMiddleware({
+  target: USER_AUTH_URL,
+  changeOrigin: true,
+  // pathRewrite is not needed here as the path on the gateway matches
+  // the path on the backend service.
+}));
+
+// --- Product Catalog API Proxy ---
+// This proxy handles all other requests that start with '/api' and
+// forwards them to the Product Catalog Service.
 app.use('/api', createProxyMiddleware({
   target: PRODUCT_CATALOG_URL,
   changeOrigin: true, // This is a good practice for virtual hosting.

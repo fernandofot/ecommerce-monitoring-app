@@ -55,6 +55,30 @@ services:
         condition: service_healthy
     networks:
       - ecommerce_network
+      
+  # NEW SERVICE: User and Authentication Service (Java / Spring Boot)
+  # This service handles user registration and login.
+  user-service:
+    # We point Docker Compose to the new user-service directory for the build.
+    build: ./user-service
+    container_name: user_auth_app
+    environment:
+      # We pass the same database credentials so this service can also
+      # connect to the shared MySQL database.
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ecommerce_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      # Expose the port for this service.
+      - "8080:8080"
+    depends_on:
+      # This service also needs the database to be ready before it starts.
+      db:
+        condition: service_healthy
+    networks:
+      - ecommerce_network
 
   # This is a special container just for building our React app. It helps us
   # keep our final web server image small and clean.
@@ -86,10 +110,11 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      # The gateway needs the product catalog service to be healthy so it
-      # has somewhere to forward requests!
+      # The gateway now depends on both the product catalog and the new user service.
       product-catalog-service:
         condition: service_healthy
+      user-service:
+        condition: service_started
     networks:
       - ecommerce_network
 
