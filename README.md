@@ -17,6 +17,14 @@ The application is structured as a set of independent microservices, each potent
 
     * **API Gateway / Frontend BFF (Node.js / Express):** The primary entry point for the frontend, routing and aggregating calls to backend services.
 
+    * **User & Authentication Service (Java / Spring Boot / MySQL):** Handles user registration, login, and authentication.
+
+        * **Technology:** Java 17+, Spring Boot, MySQL.
+
+        * **Database:** MySQL.
+
+        * **Containerization:** Docker.
+
     * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering) and stock levels.
 
         * **Technology:** Python 3.9+, FastAPI, SQLAlchemy, MySQL.
@@ -57,6 +65,11 @@ ecommerce-monitoring-app/
 │   ├── Dockerfile
 │   ├── package.json
 │   └── server.js
+├── user-service/
+│   ├── pom.xml
+│   ├── src/
+│   │   └── ...
+│   └── Dockerfile
 ├── product-catalog-service/
 │   ├── main.py
 │   ├── requirements.txt
@@ -111,6 +124,8 @@ This command will:
 
 * Create and run the ```ecommerce_frontend_builder container```, which builds the React app and then exits.
 
+* Create and start the ```user_auth_app``` container.
+
 * Create and start the ```product_catalog_app``` container ensuring it waits for the database to be healthy.
 
 * Create and start the ```api_gateway``` container.
@@ -123,7 +138,7 @@ Check that both containers are running:
 ```
 docker ps
 ```
-You should see ```mysql_db```, ```product_catalog_app```, ```api_gateway```, and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
+You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, ```api_gateway```, and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
 
 **5. Access the Application**
 
