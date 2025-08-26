@@ -17,7 +17,7 @@ The application is structured as a set of independent microservices, each potent
 
     * **API Gateway / Frontend BFF (Node.js / Express):** The primary entry point for the frontend, routing and aggregating calls to backend services.
 
-    * **User & Authentication Service (Java / Spring Boot / MySQL):** Handles user registration, login, and authentication.
+    * **User & Authentication Service (Java / Spring Boot / MySQL):** Handles user registration, authentication with a dedicated login endpoint, and JSON Web Token (JWT) generation for secure API access.
 
         * **Technology:** Java 17+, Spring Boot, MySQL.
 
@@ -34,8 +34,6 @@ The application is structured as a set of independent microservices, each potent
         * **Containerization:** Docker.
 
 * **Planned Services:** (Future additions to expand the microservices architecture)
-
-    * User & Authentication Service (Java / Spring Boot): Handles user registration, login, and authentication.
 
     * Order Processing Service (.NET / ASP.NET Core): Manages the order lifecycle.
 
@@ -158,6 +156,21 @@ You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, `
     
     * **Add to Cart:** Clicking the "Add to Cart" button on any product sends a request to the backend, updates a simulated cart count, and decreases the product's stock level.
     * **Clear Cart:** A new "Clear Cart" button on the cart page sends a request to the backend, which removes all items from the cart and returns the stock to the product catalog. 
+
+* **Test the Authentication Service**
+
+    Now that you've added the login endpoint, you can test it to get a JWT.
+
+    ```
+    curl -X POST http://localhost:8080/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{
+      "username": "testuser",
+      "password": "password123"
+    }'
+    ```
+
+    A successful response will return a JSON Web Token (JWT), confirming that the authentication is working correctly.
 
 * **Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
 
