@@ -1,4 +1,4 @@
-// user-service/src/main/java/com/example/userservice/service/AuthService.java
+// File: user-service/src/main/java/com/example/userservice/service/AuthService.java
 
 package com.example.userservice.service;
 
@@ -50,14 +50,14 @@ public class AuthService {
     }
 
     /**
-     * Authenticates a user.
-     * @param email The user's email.
+     * Authenticates a user using their username and password.
+     * @param username The user's username.
      * @param password The user's plain-text password.
      * @return An Optional containing the authenticated User if credentials are valid, or empty otherwise.
      */
-    public Optional<User> authenticateUser(String email, String password) {
-        // Find the user by their email address.
-        Optional<User> userOptional = userRepository.findByEmail(email);
+    public Optional<User> authenticateUser(String username, String password) {
+        // Corrected: Now finds the user by their username, aligning with the controller's logic.
+        Optional<User> userOptional = userRepository.findByUsername(username);
 
         // If the user is found, check if the provided password matches the stored hashed password.
         if (userOptional.isPresent()) {

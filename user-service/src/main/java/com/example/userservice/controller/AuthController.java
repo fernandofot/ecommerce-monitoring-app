@@ -1,4 +1,5 @@
-// user-service/src/main/java/com/example/userservice/controller/AuthController.java
+// File: user-service/src/main/java/com/example/userservice/controller/AuthController.java
+// This is the corrected controller with the login logic fix.
 
 package com.example.userservice.controller;
 
@@ -60,8 +61,8 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
-        // Authenticate the user.
-        Optional<User> userOptional = authService.authenticateUser(request.getEmail(), request.getPassword());
+        // Authenticate the user by username, not email.
+        Optional<User> userOptional = authService.authenticateUser(request.getUsername(), request.getPassword());
         
         if (userOptional.isPresent()) {
             User user = userOptional.get();
@@ -73,7 +74,7 @@ public class AuthController {
             return new ResponseEntity<>(new LoginResponse(jwt, "Login successful!"), HttpStatus.OK);
         } else {
             // Return a 401 Unauthorized if authentication fails.
-            return new ResponseEntity<>(new MessageResponse("Invalid email or password."), HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(new MessageResponse("Invalid username or password."), HttpStatus.UNAUTHORIZED);
         }
     }
 
