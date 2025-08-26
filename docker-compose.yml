@@ -73,6 +73,14 @@ services:
     ports:
       # Expose the port for this service.
       - "8080:8080"
+    healthcheck:
+      # A new, more reliable health check to make sure the Spring Boot application
+      # is fully started and listening on its port.
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       # This service also needs the database to be ready before it starts.
       db:
@@ -110,11 +118,12 @@ services:
       retries: 5
       start_period: 10s
     depends_on:
-      # The gateway now depends on both the product catalog and the new user service.
+      # The gateway now depends on both the product catalog and the new user service,
+      # and it will wait for both to be fully healthy before it starts.
       product-catalog-service:
         condition: service_healthy
       user-service:
-        condition: service_started
+        condition: service_healthy
     networks:
       - ecommerce_network
 

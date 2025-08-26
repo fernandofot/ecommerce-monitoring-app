@@ -28,6 +28,10 @@ RUN mvn clean package -DskipTests
 # This final image will only contain the Java Runtime Environment and our application.
 FROM openjdk:17-slim
 
+# This is the new, crucial step! We need to install the 'netcat' utility
+# so that our health check can properly verify if the service is up.
+RUN apt-get update && apt-get install -y netcat && rm -rf /var/lib/apt/lists/*
+
 # Expose the port that our Spring Boot application will run on.
 EXPOSE 8080
 
