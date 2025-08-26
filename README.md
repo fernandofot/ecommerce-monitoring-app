@@ -19,7 +19,7 @@ The application is structured as a set of independent microservices, each potent
 
     * **User & Authentication Service (Java / Spring Boot / MySQL):** Handles user registration, authentication with a dedicated login endpoint, and JSON Web Token (JWT) generation for secure API access.
 
-        * **Technology:** Java 17+, Spring Boot, MySQL.
+        * **Technology:** Java 17+, Spring Boot, MySQL. It has been configured to use **usernames** for authentication in addition to email, which is required for the new login endpoint.
 
         * **Database:** MySQL.
 
