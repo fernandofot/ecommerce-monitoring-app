@@ -213,3 +213,7 @@ When adding a new microservice:
 Future steps will involve integrating OpenTelemetry (or specific APM agent SDKs) into each service to emit traces, metrics, and logs, making the entire application observable.
 
 This README provides a solid foundation.
+
+### Hardware Requirements
+
+To run this application smoothly, especially when starting all services simultaneously, your server should have a minimum of **8GB of RAM and 4 CPUs**. This recommendation is based on the resource-intensive nature of the services included, particularly the MySQL database and the Java/Spring Boot application. During startup, these services can consume significant amounts of memory, and on servers with limited resources (like 4GB RAM), this can lead to slow initialization and container health check failures. A more powerful machine ensures that all containers can start and become healthy without resource contention, providing a stable environment for the application.
