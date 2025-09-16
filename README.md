@@ -36,7 +36,6 @@ The application is structured as a set of independent microservices, each using 
 | Recommendation Service                   | Python        | Recommends other products based on what's currently in the cart.                                                                                   |
 | Ad Service             | Java            | Provides text ads based on given context words.                            |
 | Load Generator | Python / Locust        | Continuously sends requests to the frontend, imitating realistic user shopping flows.                                                                      |
-                                         |
 
 
 ## Observability Focus
