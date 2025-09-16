@@ -18,9 +18,11 @@ const PORT = process.env.PORT || 3000;
 // Our backend URLs are pulled from environment variables.
 // These are usually set up for us automatically by Docker Compose.
 // The service names are what we use to talk to them within the Docker network.
-const PRODUCT_CATALOG_URL = process.env.PRODUCT_CATALOG_URL || 'http://product_catalog_app:8000';
+const PRODUCT_CATALOG_URL = process.env.PRODUCT_CATALOG_URL || 'http://product-catalog-service:8000';
 // NEW: We've added the URL for our new user and authentication service.
-const USER_AUTH_URL = process.env.USER_AUTH_URL || 'http://user_auth_app:8080';
+const USER_AUTH_URL = process.env.USER_AUTH_URL || 'http://user-service:8080';
+// NEW: We've added the URL for our new order processing service.
+const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://order-service:8082';
 
 // =========================================================================
 // API Gateway Routing and Proxying
@@ -39,8 +41,8 @@ app.get('/', (req, res) => {
     res.send('API Gateway is running!');
 });
 
-// --- NEW: User & Authentication API Proxy ---
-// This middleware specifically handles requests for the new user service.
+// --- User & Authentication API Proxy ---
+// This middleware specifically handles requests for the user service.
 // It's important to place this before the more general /api route below,
 // so requests to /api/auth get handled correctly.
 app.use('/api/auth', createProxyMiddleware({
@@ -48,6 +50,16 @@ app.use('/api/auth', createProxyMiddleware({
   changeOrigin: true,
   // pathRewrite is not needed here as the path on the gateway matches
   // the path on the backend service.
+}));
+
+// --- NEW: Order Processing API Proxy ---
+// This middleware handles requests for the new order service.
+app.use('/api/orders', createProxyMiddleware({
+  target: ORDER_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/orders': '/'
+  }
 }));
 
 // --- Product Catalog API Proxy ---
@@ -60,7 +72,6 @@ app.use('/api', createProxyMiddleware({
     '^/api/': '/' // This regex-based rewrite removes '/api/' from the start of the path.
   }
 }));
-
 
 // =========================================================================
 // Server Initialization

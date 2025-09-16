@@ -70,9 +70,7 @@ services:
       MYSQL_DATABASE: ecommerce_db
       MYSQL_USER: user
       MYSQL_PASSWORD: password
-    ports:
-      # Expose the port for this service.
-      - "8080:8080"
+    # REMOVED the 'ports' section from here to prevent a port conflict.
     healthcheck:
       # A new, more reliable health check to make sure the Spring Boot application
       # is fully started and listening on its port.
@@ -87,7 +85,24 @@ services:
         condition: service_healthy
     networks:
       - ecommerce_network
-
+      
+  # NEW SERVICE: Order Processing Service (.NET / ASP.NET Core)
+  # This service will manage the order lifecycle.
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: order_service_app
+    # REMOVED the 'ports' section from here to prevent a port conflict.
+    environment:
+      - ASPNETCORE_URLS=http://+:8082
+      - ConnectionStrings__DefaultConnection=Server=db;Database=ecommerce_db;Uid=user;Pwd=password;
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ecommerce_network
+      
   # This is a special container just for building our React app. It helps us
   # keep our final web server image small and clean.
   frontend-builder:
@@ -105,10 +120,7 @@ services:
   api-gateway:
     build: ./api-gateway
     container_name: api_gateway
-    ports:
-      # We'll expose this port for now so we can test the gateway directly,
-      # but in the final setup, Nginx will handle all the incoming traffic.
-      - "3000:3000"
+    # REMOVED the 'ports' section from here to prevent a port conflict.
     healthcheck:
       # A health check to make sure our gateway is ready to route traffic.
       # We give it a little extra time to start up with `start_period`.
@@ -133,9 +145,9 @@ services:
     image: nginx:alpine
     container_name: ecommerce_nginx
     ports:
-      # Maps port 80 on your computer to the Nginx port in the container.
-      # This means you can just go to http://localhost in your browser.
-      - "80:80"
+      # This is the ONLY port we need to expose to our computer.
+      # We'll use port 8080 on your machine to avoid the conflict.
+      - "8080:80"
     volumes:
       # We're telling Nginx to grab the built React app from our shared volume...
       - frontend_build_data:/usr/share/nginx/html:ro
@@ -164,3 +176,4 @@ volumes:
   # These are our persistent named volumes, perfect for sharing data between containers.
   db_data:
   frontend_build_data:
+
