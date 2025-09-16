@@ -22,33 +22,22 @@ The application is structured as a set of independent microservices, each using 
 | Order Processing               | .NET / ASP.NET Core       | Manages the order lifecycle, handling shopping carts and order-related operations.                                     |
 
 
-    * **Frontend Application (React):** User-facing web interface. Built with React and served by Nginx.
+* **Planned Services:** 
+(Future additions to expand the microservices architecture)
 
-    * **Nginx Reverse Proxy:** Acts as the entry point, serving the React static files and proxying API requests to the backend service.
+| Service                                              | Language      | Description                                                                                                                       |
+| ---------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Cart Service                           | C#            | Stores the items in the user's shopping cart in Redis and retrieves it. |
+| Currency Service                     | Node.js            | Converts a monetary amount to another currency using real values from the European Central Bank. It's the highest QPS service.                                                           |
+| Payment Service | Node.js            | Mocks charging a credit card with the given amount and returns a transaction ID.                        |
+| Shipping Service             | Go       | Gives shipping cost estimates based on the shopping cart. |
+| Email Service               | Python       | Mocks sending an order confirmation email to the user.                                     |
+| Checkout Service             | Go            | Orchestrates the final checkout flow, retrieving the cart, preparing the order, and calling the payment, shipping, and email services.                                 |
+| Recommendation Service                   | Python        | Recommends other products based on what's currently in the cart.                                                                                   |
+| Ad Service             | Java            | Provides text ads based on given context words.                            |
+| Load Generator | Python / Locust        | Continuously sends requests to the frontend, imitating realistic user shopping flows.                                                                      |
+                                         |
 
-    * **API Gateway / Frontend BFF (Node.js / Express):** The primary entry point for the frontend, routing and aggregating calls to backend services.
-
-    * **User & Authentication Service (Java / Spring Boot / MySQL):** Handles user registration, authentication with a dedicated login endpoint, and JSON Web Token (JWT) generation for secure API access.
-
-        * **Technology:** Java 17+, Spring Boot, MySQL. It has been configured to use **usernames** for authentication in addition to email, which is required for the new login endpoint.
-
-        * **Database:** MySQL.
-
-        * **Containerization:** Docker.
-
-    * **Product Catalog Service (Python / FastAPI / MySQL):** Manages product data (CRUD operations, search, filtering) and stock levels.
-
-        * **Technology:** Python 3.9+, FastAPI, SQLAlchemy, MySQL.
-        
-        * **Database:** MySQL.
-
-        * **Containerization:** Docker.
-
-* **Planned Services:** (Future additions to expand the microservices architecture)
-
-    * Order Processing Service (.NET / ASP.NET Core): Manages the order lifecycle.
-
-    * Inventory Service (Node.js): **(Deferred)** The core functionality of managing product stock is currently handled by the Product Catalog Service. A dedicated microservice would be needed for more complex inventory management, such as low-stock alerts or multiple warehouses.
 
 ## Observability Focus
 
