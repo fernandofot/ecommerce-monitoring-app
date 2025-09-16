@@ -9,7 +9,7 @@ To build a multi-technology microservices application that can be easily contain
 ## Architecture & Technologies
 The application is structured as a set of independent microservices, each potentially using a different technology stack.
 
-![Architecture](frontend/public/images/ArchitectureFlowchart.png)
+![Architecture of Microservices](frontend/public/images/ArchitectureFlowchart.png)
 
 * **Service Overview**
 
