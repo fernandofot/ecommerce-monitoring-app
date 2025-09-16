@@ -9,7 +9,18 @@ To build a multi-technology microservices application that can be easily contain
 ## Architecture & Technologies
 The application is structured as a set of independent microservices, each potentially using a different technology stack.
 
-* **Current Services:**
+* **Service Overview**
+
+The application is structured as a set of independent microservices, each using a different technology stack.
+
+| Service                                              | Language      | Description                                                                                                                       |
+| ---------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend Application                          | React / Nginx            | User-facing web interface. Built with React and served by an Nginx web server. |
+| API Gateway                    | Node.js / Express            | The primary entry point for the frontend, routing and aggregating calls to backend services.                                                           |
+| User & Authentication | Java / Spring Boot            | Handles user registration, authentication with a login endpoint, and JSON Web Token (JWT) generation.                        |
+| Product Catalog             | Python / FastAPI       | Manages product data (CRUD operations) and stock levels from a MySQL database. |
+| Order Processing               | .NET / ASP.NET Core       | Manages the order lifecycle, handling shopping carts and order-related operations.                                     |
+
 
     * **Frontend Application (React):** User-facing web interface. Built with React and served by Nginx.
 
@@ -126,6 +137,8 @@ This command will:
 
 * Create and start the ```product_catalog_app``` container ensuring it waits for the database to be healthy.
 
+* Create and start the ```order_service_app``` container.
+
 * Create and start the ```api_gateway``` container.
 
 * Create and start the ```ecommerce_nginx``` container, which serves the built React app and proxies API requests to the ```api_gateway```.
@@ -136,7 +149,7 @@ Check that both containers are running:
 ```
 docker ps
 ```
-You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, ```api_gateway```, and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
+You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, ```order_service_app``` ,```api_gateway```, and ```ecommerce_nginx``` listed with a ```Up``` status. The ```ecommerce_frontend_builder``` container should show as Exited.
 
 **5. Access the Application**
 
@@ -145,7 +158,7 @@ You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, `
     Open your web browser and navigate to:
     
     ```
-    http://localhost
+    http://localhost:8080
     ```
 
     You should see the E-commerce Store frontend displaying products.
