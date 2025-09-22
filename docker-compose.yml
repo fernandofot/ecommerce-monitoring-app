@@ -45,7 +45,7 @@ services:
       # Another crucial health check. This one checks if the application is
       # actually running and accepting connections.
       test: ["CMD-SHELL", "python -c \"import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(1); s.connect(('localhost', 8000)); s.close()\""]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
     depends_on:
@@ -75,10 +75,10 @@ services:
       # A new, more reliable health check to make sure the Spring Boot application
       # is fully started and listening on its port.
       test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 5
-      start_period: 20s
+      start_period: 90s
     depends_on:
       # This service also needs the database to be ready before it starts.
       db:
@@ -128,7 +128,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     depends_on:
       # The gateway now depends on both the product catalog and the new user service,
       # and it will wait for both to be fully healthy before it starts.
