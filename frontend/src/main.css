@@ -1,0 +1,7 @@
+/*
+  This CSS file sets a global background color for the application.
+  It's here to ensure the page has a visible background and isn't just black.
+*/
+body {
+    background-color: #f7fafc; /* A light, off-white color */
+}

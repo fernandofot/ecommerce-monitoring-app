@@ -321,26 +321,34 @@ return total + (price * item.quantity);
 };
 
 return (
-<div className="min-h-screen bg-gray-100 font-sans text-gray-800 p-4">
-<header className="bg-white shadow-md rounded-lg p-6 mb-8 flex justify-between items-center">
-<h1 className="text-4xl font-bold text-indigo-700 mb-2">
+<div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-4">
+<header className="bg-gray-800 shadow-md rounded-lg p-6 mb-8 flex justify-between items-center">
+<h1 className="text-4xl font-bold text-indigo-400 mb-2">
 Awesome E-Shop
 </h1>
-<div className="relative">
-{/* We'll make the cart icon clickable to open the modal */}
-<button onClick={() => setIsCartOpen(true)} className="relative p-2 rounded-full text-indigo-600 hover:bg-gray-200 transition-colors">
-<ShoppingCart className="w-8 h-8" />
-{/* Only show the badge if there are items */}
-{totalCartCount > 0 && (
-<span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-{totalCartCount}
-</span>
-)}
-</button>
+<div className="flex items-center space-x-4">
+    {/* NEW: The "Add Product" button is now a React component */}
+    <a href="/add_product.html" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-300">
+        Add Product
+    </a>
+
+    {/* The original shopping cart button */}
+    <div className="relative">
+        {/* We'll make the cart icon clickable to open the modal */}
+        <button onClick={() => setIsCartOpen(true)} className="relative p-2 rounded-full text-indigo-400 hover:bg-gray-700 transition-colors">
+            <ShoppingCart className="w-8 h-8" />
+            {/* Only show the badge if there are items */}
+            {totalCartCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {totalCartCount}
+            </span>
+            )}
+        </button>
+    </div>
 </div>
 </header>
 <main className="max-w-7xl mx-auto">
-<h2 className="text-3xl font-semibold text-gray-800 mb-6 text-center">
+<h2 className="text-3xl font-semibold text-gray-100 mb-6 text-center">
 What's for sale today?
 </h2>
 
@@ -357,7 +365,7 @@ message.type === 'success' ? 'bg-green-100 border border-green-400 text-green-70
 {isLoading && (
 <div className="flex justify-center items-center h-48">
 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
-<p className="ml-4 text-xl text-indigo-600">Hold on, fetching products...</p>
+<p className="ml-4 text-xl text-indigo-400">Hold on, fetching products...</p>
 </div>
 )}
 
@@ -381,7 +389,7 @@ message.type === 'success' ? 'bg-green-100 border border-green-400 text-green-70
 {!isLoading && !error && products.length > 0 && (
 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 {products.map(product => (
-<div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+<div key={product.id} className="bg-gray-800 rounded-xl shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
 <img
 src={product.image_url || `https://placehold.co/400x300/e0e0e0/333333?text=${encodeURIComponent(product.name)}`}
 alt={product.name}
@@ -389,10 +397,10 @@ className="w-full h-48 object-cover"
 onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/400x300/e0e0e0/333333?text=Image+Not+Found"; }}
 />
 <div className="p-5">
-<h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
-<p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description || 'No description provided.'}</p>
+<h3 className="text-xl font-bold text-gray-100 mb-2">{product.name}</h3>
+<p className="text-gray-400 text-sm mb-3 line-clamp-2">{product.description || 'No description provided.'}</p>
 <div className="flex justify-between items-center mb-4">
-<span className="text-2xl font-extrabold text-indigo-600">€{product.price.toFixed(2)}</span>
+<span className="text-2xl font-extrabold text-indigo-400">€{product.price.toFixed(2)}</span>
 <span className="text-sm text-gray-500">Only {product.stock_quantity} left!</span>
 </div>
 <button
@@ -417,18 +425,18 @@ className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-
 <div onClick={() => setIsCartOpen(false)} className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
 
 {/* Modal content */}
-<div className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-xl transform transition-transform duration-300 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+<div className={`fixed right-0 top-0 h-full w-full sm:w-96 bg-gray-800 shadow-xl transform transition-transform duration-300 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 <div className="p-6 flex flex-col h-full">
-<div className="flex justify-between items-center pb-4 border-b">
-<h3 className="text-2xl font-bold text-gray-800">Your Cart</h3>
-<button onClick={() => setIsCartOpen(false)} className="p-2 text-gray-500 hover:text-gray-800">
+<div className="flex justify-between items-center pb-4 border-b border-gray-700">
+<h3 className="text-2xl font-bold text-gray-100">Your Cart</h3>
+<button onClick={() => setIsCartOpen(false)} className="p-2 text-gray-400 hover:text-gray-100">
 <X size={24} />
 </button>
 </div>
 
 <div className="flex-grow my-4 overflow-y-auto">
 {cartItems.length === 0 ? (
-<div className="text-center text-gray-500 mt-10">
+<div className="text-center text-gray-400 mt-10">
 <p>Your cart is empty.</p>
 <p>Start adding some awesome products!</p>
 </div>
@@ -439,18 +447,18 @@ if (!product) return null; // Defensive check
 
 return (
 // The main container for each cart item
-<div key={item.product_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+<div key={item.product_id} className="flex items-center justify-between py-2 border-b last:border-b-0 border-gray-700">
 {/* Left side: Product Name and Quantity Controls */}
 <div className="flex-grow">
-<p className="font-semibold text-gray-900">{product.name}</p>
+<p className="font-semibold text-gray-100">{product.name}</p>
 {/* NEW: Quantity controls block */}
-<div className="flex items-center text-sm text-gray-600 mt-1">
+<div className="flex items-center text-sm text-gray-400 mt-1">
 <span className="mr-2">Quantity:</span>
 <div className="flex items-center space-x-2">
 {/* Decrease button */}
 <button
 onClick={() => handleUpdateQuantity(item.product_id, -1)}
-className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-300 transition duration-200"
+className="bg-gray-700 text-gray-300 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-600 transition duration-200"
 >
 -
 </button>
@@ -458,7 +466,7 @@ className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center ro
 {/* Increase button */}
 <button
 onClick={() => handleUpdateQuantity(item.product_id, 1)}
-className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-300 transition duration-200"
+className="bg-gray-700 text-gray-300 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-600 transition duration-200"
 >
 +
 </button>
@@ -468,8 +476,8 @@ className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center ro
 
 {/* Right side: Total Price and Remove button */}
 <div className="flex items-center space-x-2">
-<span className="font-bold text-gray-800">€{(product.price * item.quantity).toFixed(2)}</span>
-<button onClick={() => handleRemoveFromCart(item.product_id)} className="p-1 rounded-full text-red-500 hover:bg-red-100 transition-colors duration-200">
+<span className="font-bold text-gray-100">€{(product.price * item.quantity).toFixed(2)}</span>
+<button onClick={() => handleRemoveFromCart(item.product_id)} className="p-1 rounded-full text-red-500 hover:bg-red-900 transition-colors duration-200">
 <X size={16} />
 </button>
 </div>
@@ -480,8 +488,8 @@ className="bg-gray-200 text-gray-700 w-6 h-6 flex items-center justify-center ro
 </div>
 
 {cartItems.length > 0 && (
-<div className="pt-4 border-t">
-<div className="flex justify-between items-center font-bold text-xl text-gray-900 mb-4">
+<div className="pt-4 border-t border-gray-700">
+<div className="flex justify-between items-center font-bold text-xl text-gray-100 mb-4">
 <span>Total:</span>
 <span>€{calculateTotal()}</span>
 </div>
@@ -512,9 +520,9 @@ Checkout
 <div onClick={closeCheckoutModal} className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
 
 {/* Modal content */}
-<div className="relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl p-8 max-w-sm w-11/12 text-center">
-<h3 className="text-2xl font-bold text-gray-800 mb-4">Proceeding to Checkout</h3>
-<p className="text-gray-600 mb-6">
+<div className="relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 rounded-xl shadow-2xl p-8 max-w-sm w-11/12 text-center">
+<h3 className="text-2xl font-bold text-gray-100 mb-4">Proceeding to Checkout</h3>
+<p className="text-gray-400 mb-6">
 Thank you for your purchase! We'll process your order and send a confirmation to your email.
 </p>
 <button

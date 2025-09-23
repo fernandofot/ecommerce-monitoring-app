@@ -1,7 +1,7 @@
-// frontend/src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './main.css'; // This line tells our app to load the styles!
 
 // Okay, find the root element in the HTML
 const container = document.getElementById('root');
