@@ -5,5 +5,5 @@
     mysql-connector-python==8.4.0
     pydantic==2.7.4
     pydantic-settings==2.3.3
-    python-multipart==0.0.9 # <-- NEW DEPENDENCY FOR CORS
+    python-multipart==0.0.9 
     

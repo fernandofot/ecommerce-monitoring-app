@@ -4,15 +4,13 @@
 # Stage 1: Build the React app
 # ======================================================
 # Okay, first stage: build the React app.
-# I'm starting with a node image, specifically one that's small and fast (alpine).
-FROM node:18-alpine AS build
+# FIX: Upgrading to node:20-alpine for better stability and to avoid metadata issues.
+FROM node:20-alpine AS build
 
 # Let's put the app inside this directory in the container
 WORKDIR /app
 
-# Copy the package files first. This is a crucial trick!
-# It lets Docker cache the `npm install` layer. So if you only change your
-# source code, this step won't re-run, which makes rebuilding way faster.
+# Copy the package files first to leverage Docker caching for dependencies
 COPY package.json ./
 
 # Now install all the dependencies.
