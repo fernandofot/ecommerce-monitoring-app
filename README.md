@@ -61,36 +61,42 @@ Ensure your project directory is structured as follows:
 ```
 ecommerce-monitoring-app/
 ├── api-gateway/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── server.js
+│ ├── Dockerfile
+│ ├── package.json
+│ └── server.js
 ├── user-service/
-│   ├── pom.xml
-│   ├── src/
-│   │   └── ...
-│   └── Dockerfile
+│ ├── pom.xml
+│ ├── src/
+│ │ └── ...
+│ └── Dockerfile
 ├── product-catalog-service/
-│   ├── main.py
-│   ├── requirements.txt
-│   └── Dockerfile
+│ ├── main.py
+│ ├── requirements.txt
+│ └── Dockerfile
 ├── frontend/
-│   ├── public/
-│   │   ├── images/
-│   │   │   ├── catalog_api.png
-│   │   │   └── home.png
-│   │   └── index.html
-│   ├── src/
-│   │   ├── App.js
-│   │   └── index.js
-│   ├── package.json
-│   └── Dockerfile
+│ ├── public/
+│ │ ├── images/
+│ │ │ ├── catalog_api.png
+│ │ │ └── home.png
+│ │ └── index.html
+│ ├── src/
+│ │ ├── App.js
+│ │ └── index.js
+│ ├── package.json
+│ └── Dockerfile
 ├── nginx/
-│   ├── nginx.conf
-│   └── Dockerfile
+│ ├── nginx.conf
+│ └── Dockerfile
 ├── docker-compose.yml
-└── .gitignore
+├── .gitignore
 └── README.md
+
 ```
+**Base images note (Apple Silicon & modern runtimes)**
+
+- The **user-service** uses `eclipse-temurin:17-jre` as the runtime image instead of the older `openjdk:17-jre-alpine`, which is deprecated and not available for Apple Silicon.
+- The **frontend** builder uses `node:20-alpine` to align with the current Node.js LTS and avoid image metadata issues on M‑series Macs.
+
 **2. Docker Compose Configuration**
 
 The ```docker-compose.yml``` file orchestrates all services: the MySQL database, the Product Catalog Service, a frontend builder, and the Nginx reverse proxy, connecting them to a shared Docker network.
@@ -101,7 +107,7 @@ The ```docker-compose.yml``` file orchestrates all services: the MySQL database,
 
 Navigate to the root of your ```ecommerce-app``` directory in your terminal:
 ```
-cd ecommerce-app
+cd ecommerce-monitoring-app
 ```
 First, perform a clean shutdown and remove any old containers/volumes to ensure a fresh start:
 ```
