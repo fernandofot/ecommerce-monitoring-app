@@ -52,6 +52,47 @@ A core aspect of this project is its design for monitoring and observability. Fu
 
 * **Health Checks:** Standardized endpoints for liveness and readiness probes.
 
+### Order Service – APM-Focused Logging
+
+The `.NET / ASP.NET Core` order-service exposes `/orders` (and is accessible externally via `/api/orders` through the API Gateway).  
+On creating an order, it emits a structured log event like:
+
+- `Event`: `order_created`
+- `UserId`: user who placed the order
+- `OrderId`: generated order identifier
+- `TotalItems`: sum of quantities in the cart
+- `TotalAmount`: total amount for the order
+- `Items`: list of `{ ProductId, ProductName, Quantity, UnitPrice }`
+
+This log can be ingested by Dynatrace, Instana, or other APM / log systems to analyze cart contents and order behavior without querying the database.
+
+Example request (via Nginx + API Gateway):
+
+```
+bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123",
+    "items": [
+      {
+        "productId": "p-001",
+        "productName": "Wireless Mouse",
+        "quantity": 2,
+        "unitPrice": 29.99
+      },
+      {
+        "productId": "p-002",
+        "productName": "Mechanical Keyboard",
+        "quantity": 1,
+        "unitPrice": 89.99
+      }
+    ]
+  }'
+
+```
+The order-service responds with the created order and logs the OrderCreated event.
+
 ## Setup and Running the Application
 This guide assumes you have Docker installed and running on your system.
 
@@ -181,7 +222,7 @@ You should see ```mysql_db```, ```user_auth_app```, ```product_catalog_app```, `
 
     A successful response will return a JSON Web Token (JWT), confirming that the authentication is working correctly.
 
-* **Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
+Product Catalog Service API Docs (via API Gateway):**  You can access the FastAPI interactive documentation (Swagger UI) by navigating through the API Gateway, which Nginx proxies to:
 
 ```
 http://localhost/api/docs
@@ -198,6 +239,38 @@ From the Swagger UI, you can test the API endpoints (e.g., ```GET /products/```,
 * Use ```GET /products/``` to retrieve all products.
 
 ![E-commerce Store Frontend](frontend/public/images/catalog_api.png)
+
+**Order Service (via API Gateway)**
+
+Create an order (for APM/logging demos):
+
+```
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123",
+    "items": [
+      {
+        "productId": "p-001",
+        "productName": "Wireless Mouse",
+        "quantity": 2,
+        "unitPrice": 29.99
+      },
+      {
+        "productId": "p-002",
+        "productName": "Mechanical Keyboard",
+        "quantity": 1,
+        "unitPrice": 89.99
+      }
+    ]
+  }'
+
+  ```
+
+  This both:
+
+* Returns the created order as JSON.
+* Emits a structured OrderCreated log with full cart details.
 
 ## Development
 **Adding New Services**

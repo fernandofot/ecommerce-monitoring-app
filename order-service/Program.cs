@@ -14,11 +14,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// ===== Diagnostic logging middleware (NEW) =====
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("RequestLogger");
+    logger.LogInformation("Order service received: {Method} {Path}",
+        context.Request.Method, context.Request.Path);
+    await next();
+});
+// ===============================================
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-// This is the crucial line that maps our controllers.
+// This maps our controllers (including OrdersController with [Route("orders")])
 app.MapControllers();
 
 app.Run();

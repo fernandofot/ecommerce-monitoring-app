@@ -54,11 +54,18 @@ app.use('/api/auth', createProxyMiddleware({
 
 // --- NEW: Order Processing API Proxy ---
 // This middleware handles requests for the new order service.
-app.use('/api/orders', createProxyMiddleware({
-  target: ORDER_SERVICE_URL,
+app.use('/api/orders', (req, res, next) => {
+  console.log('[API Gateway] Proxying to Order Service:', {
+    method: req.method,
+    originalUrl: req.originalUrl
+  });
+  next();
+}, createProxyMiddleware({
+  target: ORDER_SERVICE_URL, // 'http://order-service:8082'
   changeOrigin: true,
   pathRewrite: {
-    '^/api/orders': '/'
+    '^/api/orders$': '/orders',   // exact /api/orders
+    '^/api/orders/': '/orders/'   // /api/orders/... 
   }
 }));
 
