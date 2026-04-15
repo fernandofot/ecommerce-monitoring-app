@@ -21,7 +21,9 @@ The application is structured as a set of independent microservices, each using 
 | API Gateway                    | Node.js / Express            | The primary entry point for the frontend, routing and aggregating calls to backend services.                                                           |
 | User & Authentication | Java / Spring Boot            | Handles user registration, authentication with a login endpoint, and JSON Web Token (JWT) generation.                        |
 | Product Catalog             | Python / FastAPI       | Manages product data (CRUD operations) and stock levels from a MySQL database. |
-| Order Processing               | .NET / ASP.NET Core       | Manages the order lifecycle, handling shopping carts and order-related operations.                                     |
+| Order Processing               | .NET / ASP.NET Core       | Manages the order lifecycle, handling shopping carts and order-related operations. 
+| Cart Service                           | C# / .NET           | Stores user cart items in Redis and handles checkout flow. |
+| Redis             | Redis             | In-memory data store used by Cart Service for cart storage.  |
 
 
 * **Planned Services:** 
@@ -29,7 +31,7 @@ The application is structured as a set of independent microservices, each using 
 
 | Service                                              | Language      | Description                                                                                                                       |
 | ---------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Cart Service                           | C#            | Stores the items in the user's shopping cart in Redis and retrieves it. |
+
 | Currency Service                     | Node.js            | Converts a monetary amount to another currency using real values from the European Central Bank. It's the highest QPS service.                                                           |
 | Payment Service | Node.js            | Mocks charging a credit card with the given amount and returns a transaction ID.                        |
 | Shipping Service             | Go       | Gives shipping cost estimates based on the shopping cart. |
@@ -272,6 +274,12 @@ curl -X POST http://localhost:8080/api/orders \
 * Returns the created order as JSON.
 * Emits a structured OrderCreated log with full cart details.
 
+### Redis Service
+
+The Cart Service requires Redis to store cart data. Redis is included in the `docker-compose.yml` and will start automatically.
+
+Make sure your environment variable for Redis connection is set:
+
 ## Development
 **Adding New Services**
 
@@ -296,3 +304,9 @@ This README provides a solid foundation.
 ### Hardware Requirements
 
 To run this application smoothly, especially when starting all services simultaneously, your server should have a minimum of **8GB of RAM and 4 CPUs**. This recommendation is based on the resource-intensive nature of the services included, particularly the MySQL database and the Java/Spring Boot application. During startup, these services can consume significant amounts of memory, and on servers with limited resources (like 4GB RAM), this can lead to slow initialization and container health check failures. A more powerful machine ensures that all containers can start and become healthy without resource contention, providing a stable environment for the application.
+
+## Roadmap
+
+- Implement Payment Service to handle payment authorization.
+- Add Shipping and Email services for full order lifecycle.
+- Integrate OpenTelemetry for distributed tracing and observability.
