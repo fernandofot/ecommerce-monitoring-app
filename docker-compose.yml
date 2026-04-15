@@ -164,6 +164,30 @@ services:
     networks:
       - ecommerce_network
 
+  cart-service:
+    build:
+      context: ./CartService
+      dockerfile: Dockerfile
+    container_name: cart_service_app
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Container
+      - ConnectionStrings__Redis=redis:6379
+    ports:
+      - "5001:80"
+    networks:
+      - ecommerce_network
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce_network
+  
+
 # --- Global Settings ---
 
 networks:
